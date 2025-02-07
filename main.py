@@ -1,7 +1,4 @@
 import streamlit as st
-st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
-
-# Rest of your existing imports
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -11,7 +8,10 @@ from anthropic import Anthropic
 import os
 import json
 
+# Move page config to the top
+st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
 
+# Remove the main() function wrapper
 # Load API key from Streamlit secrets
 api_key = st.secrets["anthropic_api_key"]
 os.environ["ANTHROPIC_API_KEY"] = api_key
@@ -32,12 +32,10 @@ model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 # Load internal documentation
 @st.cache_data
 def load_docs():
-    # Enhanced internal documentation with more comprehensive information
     return pd.read_csv("internal_docs.csv")
 
 @st.cache_data
 def load_provider_queries():
-    # Expanded set of example provider queries
     return pd.read_csv("provider_queries.csv")
 
 # Load predefined query types
@@ -89,7 +87,6 @@ def ask_claude_with_rag(query):
     relevant_docs = retrieve_documents(query)
     context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
     
-    # Enhanced prompt with more context
     full_prompt = f"""
     You are an AI assistant for Moxie, supporting Provider Success Managers (PSMs) and medical spa providers.
 
@@ -117,11 +114,9 @@ def determine_escalation(query):
         "confidentiality", "lawsuit", "liability"
     ]
     
-    # Check for compliance keywords
     if any(keyword in query.lower() for keyword in compliance_keywords):
         return True, "Compliance Review Needed"
     
-    # Complexity assessment
     complexity_keywords = [
         "complex", "strategy", "advanced", "comprehensive", 
         "detailed analysis", "extensive"
@@ -132,106 +127,98 @@ def determine_escalation(query):
     
     return False, "Standard Query"
 
-# Streamlit App
-def main():
-    # Session state for tracking metrics
-    if 'queries_handled' not in st.session_state:
-        st.session_state.queries_handled = 0
-    if 'queries_escalated' not in st.session_state:
-        st.session_state.queries_escalated = 0
+# Initialize session state
+if 'queries_handled' not in st.session_state:
+    st.session_state.queries_handled = 0
+if 'queries_escalated' not in st.session_state:
+    st.session_state.queries_escalated = 0
 
-    # UI Layout
-    st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
+# Title and Overview
+st.title("🚀 Moxie AI Support Agent")
+st.markdown("### Empowering Provider Success Managers")
 
-    # Title and Overview
-    st.title("🚀 Moxie AI Support Agent")
-    st.markdown("### Empowering Provider Success Managers")
-
-    # Sidebar for User Interactions and Metrics
-    with st.sidebar:
-        st.header("🤖 AI Agent Dashboard")
-        
-        # PSM-Facing Metrics
-        st.subheader("Performance Metrics")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Queries Handled", st.session_state.queries_handled)
-        with col2:
-            st.metric("Queries Escalated", st.session_state.queries_escalated)
-        
-        # Example Query Types
-        st.subheader("Query Type Examples")
-        query_types = load_query_types()
-        for category, queries in query_types.items():
-            with st.expander(f"{category} Queries"):
-                for q in queries:
-                    st.write(f"- {q}")
-        
-        # Feedback Mechanism
-        st.subheader("Your Feedback")
-        feedback = st.radio("How is the AI agent helping?", 
-                            ["👍 Very Helpful", "👀 Needs Improvement", "🤔 Neutral"])
-        if st.button("Submit Feedback"):
-            st.success("Thank you for your feedback!")
-
-    # Main Interface
-    col1, col2 = st.columns([2, 1])
-
+# Sidebar for User Interactions and Metrics
+with st.sidebar:
+    st.header("🤖 AI Agent Dashboard")
+    
+    # PSM-Facing Metrics
+    st.subheader("Performance Metrics")
+    col1, col2 = st.columns(2)
     with col1:
-        st.header("🔍 Query Interface")
-        
-        # Query Input with Examples
-        query_placeholder = "Ask a question about your medical spa business..."
-        psm_query = st.text_input("Enter Your Query", placeholder=query_placeholder)
-        
-        # Example Query Buttons
-        st.markdown("**Quick Examples:**")
-        example_cols = st.columns(3)
-        example_queries = [
-            "How do I update billing info?",
-            "Marketing compliance guidelines",
-            "Patient data privacy"
-        ]
-        for col, query in zip(example_cols, example_queries):
-            if col.button(query):
-                psm_query = query
-
+        st.metric("Queries Handled", st.session_state.queries_handled)
     with col2:
-        st.header("📋 Query Details")
-        # Placeholder for query details
-        query_details_container = st.container()
+        st.metric("Queries Escalated", st.session_state.queries_escalated)
+    
+    # Example Query Types
+    st.subheader("Query Type Examples")
+    query_types = load_query_types()
+    for category, queries in query_types.items():
+        with st.expander(f"{category} Queries"):
+            for q in queries:
+                st.write(f"- {q}")
+    
+    # Feedback Mechanism
+    st.subheader("Your Feedback")
+    feedback = st.radio("How is the AI agent helping?", 
+                        ["👍 Very Helpful", "👀 Needs Improvement", "🤔 Neutral"])
+    if st.button("Submit Feedback"):
+        st.success("Thank you for your feedback!")
 
-    # Query Processing
-    if psm_query:
-        # Determine if escalation is needed
-        needs_escalation, escalation_reason = determine_escalation(psm_query)
-        
-        # Generate AI Response
-        response, relevant_docs = ask_claude_with_rag(psm_query)
-        
-        # Update Metrics
-        if needs_escalation:
-            st.session_state.queries_escalated += 1
-        else:
-            st.session_state.queries_handled += 1
-        
-        # Display Response
-        st.markdown("### 🤖 AI Agent Response")
-        st.info(response)
-        
-        # Query Details
-        with query_details_container:
-            st.markdown("**Query Analysis**")
-            st.write(f"**Type:** {'Escalated' if needs_escalation else 'Handled'}")
-            st.write(f"**Reason:** {escalation_reason}")
-        
-        # Retrieved Documents
-        with st.expander("📚 Relevant Documentation"):
-            st.table(relevant_docs)
+# Main Interface
+col1, col2 = st.columns([2, 1])
 
-    # Footer
-    st.markdown("---")
-    st.markdown("Built with ❤️ using **Claude 3.5 Sonnet**, **Streamlit**, and **RAG**")
+with col1:
+    st.header("🔍 Query Interface")
+    
+    # Query Input with Examples
+    query_placeholder = "Ask a question about your medical spa business..."
+    psm_query = st.text_input("Enter Your Query", placeholder=query_placeholder)
+    
+    # Example Query Buttons
+    st.markdown("**Quick Examples:**")
+    example_cols = st.columns(3)
+    example_queries = [
+        "How do I update billing info?",
+        "Marketing compliance guidelines",
+        "Patient data privacy"
+    ]
+    for col, query in zip(example_cols, example_queries):
+        if col.button(query):
+            psm_query = query
 
-if __name__ == "__main__":
-    main()
+with col2:
+    st.header("📋 Query Details")
+    # Placeholder for query details
+    query_details_container = st.container()
+
+# Query Processing
+if psm_query:
+    # Determine if escalation is needed
+    needs_escalation, escalation_reason = determine_escalation(psm_query)
+    
+    # Generate AI Response
+    response, relevant_docs = ask_claude_with_rag(psm_query)
+    
+    # Update Metrics
+    if needs_escalation:
+        st.session_state.queries_escalated += 1
+    else:
+        st.session_state.queries_handled += 1
+    
+    # Display Response
+    st.markdown("### 🤖 AI Agent Response")
+    st.info(response)
+    
+    # Query Details
+    with query_details_container:
+        st.markdown("**Query Analysis**")
+        st.write(f"**Type:** {'Escalated' if needs_escalation else 'Handled'}")
+        st.write(f"**Reason:** {escalation_reason}")
+    
+    # Retrieved Documents
+    with st.expander("📚 Relevant Documentation"):
+        st.table(relevant_docs)
+
+# Footer
+st.markdown("---")
+st.markdown("Built with ❤️ using **Claude 3.5 Sonnet**, **Streamlit**, and **RAG**")
