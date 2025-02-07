@@ -144,3 +144,4 @@ st.plotly_chart(fig)
 # Footer
 st.markdown("---")
 st.markdown("Built with ❤️ using **Claude 3.5 Sonnet**, **Streamlit**, and **RAG**.")
+
