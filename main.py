@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from anthropic import Anthropic
 import os
+import json
 
 # Load API key from Streamlit secrets
 api_key = st.secrets["anthropic_api_key"]
@@ -27,125 +28,206 @@ model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 # Load internal documentation
 @st.cache_data
 def load_docs():
+    # Enhanced internal documentation with more comprehensive information
     return pd.read_csv("internal_docs.csv")
-internal_docs_df = load_docs()
 
-# Load example provider queries
 @st.cache_data
 def load_provider_queries():
+    # Expanded set of example provider queries
     return pd.read_csv("provider_queries.csv")
-provider_queries_df = load_provider_queries()
 
-# Function to get embeddings
+# Load predefined query types
+@st.cache_data
+def load_query_types():
+    return {
+        "Routine": [
+            "How do I update my billing information?",
+            "What are the business hours for support?",
+            "How do I access my dashboard?"
+        ],
+        "Compliance": [
+            "Are there any legal restrictions on marketing?",
+            "What are the data privacy guidelines?",
+            "How do I handle patient confidentiality?"
+        ],
+        "Complex": [
+            "I'm experiencing issues with patient management software",
+            "How can I optimize my medspa's marketing strategy?",
+            "What financial reporting do I need to maintain?"
+        ]
+    }
+
+# Embedding and retrieval functions
 def get_embeddings(texts):
-    # Tokenize sentences
     encoded_input = tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
     
-    # Compute token embeddings
     with torch.no_grad():
         model_output = model(**encoded_input)
     
-    # Perform pooling
     embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
-    
-    # Normalize embeddings
     embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
     
     return embeddings.numpy()
 
-# Encode documents
+# Load and prepare embeddings
+internal_docs_df = load_docs()
 doc_embeddings = get_embeddings(internal_docs_df["question"].tolist())
 
-# Step 2: Retrieve relevant documents using NumPy
+# Retrieve documents
 def retrieve_documents(query, top_k=3):
-    # Encode the query
     query_embedding = get_embeddings([query])
-    
-    # Calculate cosine similarities
     similarities = np.dot(doc_embeddings, query_embedding.T).flatten()
-    
-    # Get top-k indices
     top_k_indices = similarities.argsort()[-top_k:][::-1]
-    
     return internal_docs_df.iloc[top_k_indices]
 
-# Step 3: Generate response using RAG
+# RAG with Claude
 def ask_claude_with_rag(query):
     relevant_docs = retrieve_documents(query)
     context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
+    
+    # Enhanced prompt with more context
+    full_prompt = f"""
+    You are an AI assistant for Moxie, supporting Provider Success Managers (PSMs) and medical spa providers.
+
+    Context from internal documentation:
+    {context}
+
+    Provide a helpful, professional response to the following query:
+    {query}
+
+    If the query involves sensitive topics like compliance, legal, or requires specialized expertise, indicate it needs escalation.
+    """
+    
     response = client.messages.create(
         model="claude-3.5-sonnet",
         max_tokens=500,
-        messages=[{"role": "user", "content": f"Context: {context}\n\nQuestion: {query}"}]
+        messages=[{"role": "user", "content": full_prompt}]
     )
+    
     return response.content[0].text, relevant_docs
 
-# Streamlit UI
-st.title("🚀 Moxie AI Agent for PSMs")
-st.markdown("### AI-Powered Support to Reduce Your Workload")
-
-# Sidebar for Metrics and Feedback
-st.sidebar.header("📊 PSM Metrics")
-queries_handled = st.sidebar.number_input("Queries Handled by AI", value=42)
-queries_escalated = st.sidebar.number_input("Queries Escalated to You", value=5)
-average_response_time = st.sidebar.text_input("Average Response Time", value="2.3s")
-st.sidebar.markdown("---")
-st.sidebar.header("🌟 Your Feedback")
-feedback = st.sidebar.radio("How is the AI agent helping you?", ["👍 Great", "👎 Needs Improvement"])
-if feedback:
-    st.sidebar.success("Thank you for your feedback!")
-
-# Main Interface
-st.header("🤖 AI Agent Interface")
-st.markdown("**Ask the AI agent for help with provider queries.**")
-
-# Display internal docs
-with st.expander("📚 View Internal Documentation"):
-    st.table(internal_docs_df)
-
-# Display example provider queries
-with st.expander("💬 Example Provider Queries"):
-    st.table(provider_queries_df)
-
-# PSM query input
-psm_query = st.text_input("Ask a question (e.g., 'How do I update billing information?')")
-if psm_query:
-    # Generate response using RAG
-    response, relevant_docs = ask_claude_with_rag(psm_query)
+# Escalation logic
+def determine_escalation(query):
+    compliance_keywords = [
+        "legal", "compliance", "regulation", "privacy", 
+        "confidentiality", "lawsuit", "liability"
+    ]
     
-    st.markdown("**🤖 AI Agent Response:**")
-    st.info(response)
+    # Check for compliance keywords
+    if any(keyword in query.lower() for keyword in compliance_keywords):
+        return True, "Compliance Review Needed"
     
-    # Show retrieved documents
-    with st.expander("🔍 See Relevant Documents Used"):
-        st.table(relevant_docs)
+    # Complexity assessment
+    complexity_keywords = [
+        "complex", "strategy", "advanced", "comprehensive", 
+        "detailed analysis", "extensive"
+    ]
     
-    # Escalation logic
-    if "compliance" in psm_query.lower() or "legal" in psm_query.lower():
-        st.warning("🚨 This query has been escalated to you for further review. Ticket ID: #12345")
-        queries_escalated += 1
-    else:
-        queries_handled += 1
+    if any(keyword in query.lower() for keyword in complexity_keywords):
+        return True, "Expert Review Required"
+    
+    return False, "Standard Query"
 
-# PSM Dashboard
-st.header("📈 PSM Dashboard")
+# Streamlit App
+def main():
+    # Session state for tracking metrics
+    if 'queries_handled' not in st.session_state:
+        st.session_state.queries_handled = 0
+    if 'queries_escalated' not in st.session_state:
+        st.session_state.queries_escalated = 0
 
-# Metrics
-col1, col2, col3 = st.columns(3)
-col1.metric("Queries Handled by AI", queries_handled)
-col2.metric("Queries Escalated to You", queries_escalated)
-col3.metric("Average Response Time", average_response_time)
+    # UI Layout
+    st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
 
-# Visualizations
-st.subheader("Query Breakdown")
-query_data = {
-    "Type": ["Handled by AI", "Escalated to PSM"],
-    "Count": [queries_handled, queries_escalated],
-}
-fig = px.pie(query_data, values="Count", names="Type", title="Query Distribution")
-st.plotly_chart(fig)
+    # Title and Overview
+    st.title("🚀 Moxie AI Support Agent")
+    st.markdown("### Empowering Provider Success Managers")
 
-# Footer
-st.markdown("---")
-st.markdown("Built with ❤️ using **Claude 3.5 Sonnet**, **Streamlit**, and **RAG**.")
+    # Sidebar for User Interactions and Metrics
+    with st.sidebar:
+        st.header("🤖 AI Agent Dashboard")
+        
+        # PSM-Facing Metrics
+        st.subheader("Performance Metrics")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Queries Handled", st.session_state.queries_handled)
+        with col2:
+            st.metric("Queries Escalated", st.session_state.queries_escalated)
+        
+        # Example Query Types
+        st.subheader("Query Type Examples")
+        query_types = load_query_types()
+        for category, queries in query_types.items():
+            with st.expander(f"{category} Queries"):
+                for q in queries:
+                    st.write(f"- {q}")
+        
+        # Feedback Mechanism
+        st.subheader("Your Feedback")
+        feedback = st.radio("How is the AI agent helping?", 
+                            ["👍 Very Helpful", "👀 Needs Improvement", "🤔 Neutral"])
+        if st.button("Submit Feedback"):
+            st.success("Thank you for your feedback!")
 
+    # Main Interface
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.header("🔍 Query Interface")
+        
+        # Query Input with Examples
+        query_placeholder = "Ask a question about your medical spa business..."
+        psm_query = st.text_input("Enter Your Query", placeholder=query_placeholder)
+        
+        # Example Query Buttons
+        st.markdown("**Quick Examples:**")
+        example_cols = st.columns(3)
+        example_queries = [
+            "How do I update billing info?",
+            "Marketing compliance guidelines",
+            "Patient data privacy"
+        ]
+        for col, query in zip(example_cols, example_queries):
+            if col.button(query):
+                psm_query = query
+
+    with col2:
+        st.header("📋 Query Details")
+        # Placeholder for query details
+        query_details_container = st.container()
+
+    # Query Processing
+    if psm_query:
+        # Determine if escalation is needed
+        needs_escalation, escalation_reason = determine_escalation(psm_query)
+        
+        # Generate AI Response
+        response, relevant_docs = ask_claude_with_rag(psm_query)
+        
+        # Update Metrics
+        if needs_escalation:
+            st.session_state.queries_escalated += 1
+        else:
+            st.session_state.queries_handled += 1
+        
+        # Display Response
+        st.markdown("### 🤖 AI Agent Response")
+        st.info(response)
+        
+        # Query Details
+        with query_details_container:
+            st.markdown("**Query Analysis**")
+            st.write(f"**Type:** {'Escalated' if needs_escalation else 'Handled'}")
+            st.write(f"**Reason:** {escalation_reason}")
+        
+        # Retrieved Documents
+        with st.expander("📚 Relevant Documentation"):
+            st.table(relevant_docs)
+
+    # Footer
+    st.markdown("---")
+    st.markdown("Built with ❤️ using **Claude 3.5 Sonnet**, **Streamlit**, and **RAG**")
+
+if __name__ == "__main__":
+    main()
