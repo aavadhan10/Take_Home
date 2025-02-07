@@ -7,7 +7,7 @@ import torch
 from anthropic import Anthropic
 
 # Load API key from Streamlit secrets
-api_key = st.secrets["anthropic"]["api_key"]
+api_key = st.secrets["anthropic_api_key"]
 client = Anthropic(api_key=api_key)
 
 # Mean Pooling - Take attention mask into account for correct averaging
