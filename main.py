@@ -2,12 +2,23 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, AutoModel
+import torch
 from anthropic import Anthropic
 
 # Load API key from Streamlit secrets
 api_key = st.secrets["anthropic"]["api_key"]
 client = Anthropic(api_key=api_key)
+
+# Mean Pooling - Take attention mask into account for correct averaging
+def mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output[0]
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+# Load model and tokenizer
+tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 
 # Load internal documentation
 @st.cache_data
@@ -21,14 +32,30 @@ def load_provider_queries():
     return pd.read_csv("provider_queries.csv")
 provider_queries_df = load_provider_queries()
 
-# Step 1: Create embeddings for internal docs
-model = SentenceTransformer("all-MiniLM-L6-v2")
-doc_embeddings = model.encode(internal_docs_df["question"].tolist())
+# Function to get embeddings
+def get_embeddings(texts):
+    # Tokenize sentences
+    encoded_input = tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
+    
+    # Compute token embeddings
+    with torch.no_grad():
+        model_output = model(**encoded_input)
+    
+    # Perform pooling
+    embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
+    
+    # Normalize embeddings
+    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
+    
+    return embeddings.numpy()
+
+# Encode documents
+doc_embeddings = get_embeddings(internal_docs_df["question"].tolist())
 
 # Step 2: Retrieve relevant documents using NumPy
 def retrieve_documents(query, top_k=3):
     # Encode the query
-    query_embedding = model.encode([query])
+    query_embedding = get_embeddings([query])
     
     # Calculate cosine similarities
     similarities = np.dot(doc_embeddings, query_embedding.T).flatten()
@@ -49,7 +76,7 @@ def ask_claude_with_rag(query):
     )
     return response.content[0].text, relevant_docs
 
-# Streamlit UI (rest of your existing code remains the same)
+# Streamlit UI
 st.title("🚀 Moxie AI Agent for PSMs")
 st.markdown("### AI-Powered Support to Reduce Your Workload")
 
