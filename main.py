@@ -14,17 +14,14 @@ st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout
 # Load API key from Streamlit secrets
 try:
     api_key = st.secrets["anthropic_api_key"]
-    api_url = st.secrets.get("claude_api_url", "https://api.anthropic.com/v1")
 except Exception as e:
     st.error(f"Error loading API key: {e}")
     api_key = None
-    api_url = None
 
 # Initialize Anthropic client with explicit configuration
 try:
     client = Anthropic(
-        api_key=api_key,
-        base_url=api_url
+        api_key=api_key
     )
 except Exception as e:
     st.error(f"Error initializing Anthropic client: {e}")
@@ -116,8 +113,9 @@ def ask_claude_with_rag(query):
         If the query involves sensitive topics like compliance, legal, or requires specialized expertise, indicate it needs escalation.
         """
         
+        # Use Claude 3 Haiku which is more widely available
         response = client.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-haiku-20240307",
             max_tokens=500,
             messages=[{"role": "user", "content": full_prompt}]
         )
@@ -126,7 +124,7 @@ def ask_claude_with_rag(query):
     
     except Exception as e:
         st.error(f"Error generating AI response: {e}")
-        return f"Error: Unable to generate response. {str(e)}", relevant_docs
+        return f"Error: Unable to generate response. Details: {str(e)}", relevant_docs
 
 # Escalation logic
 def determine_escalation(query):
@@ -152,12 +150,11 @@ def determine_escalation(query):
 def debug_anthropic_connection():
     st.header("Anthropic API Connection Debug")
     st.write("API Key Present:", bool(api_key))
-    st.write("API URL:", api_url)
     
     if client:
         try:
             test_response = client.messages.create(
-                model="claude-3-sonnet-20240229",
+                model="claude-3-haiku-20240307",
                 max_tokens=50,
                 messages=[{"role": "user", "content": "Hello, can you confirm you're working?"}]
             )
