@@ -34,9 +34,31 @@ model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 def load_docs():
     return pd.read_csv("internal_docs.csv")
 
-@st.cache_data
-def load_provider_queries():
-    return pd.read_csv("provider_queries.csv")
+# Predefined provider database (simulated)
+PROVIDER_DATABASE = [
+    {
+        "Name": "Dr. Jane Smith",
+        "Medical Spa": "Wellness Medspa",
+        "Location": "Los Angeles, CA",
+        "Contact": {
+            "Email": "jane@wellnessmedspa.com",
+            "Phone": "(555) 123-4567",
+            "SMS": "(555) 123-4567"
+        },
+        "Account Number": "MOXIE-2023"
+    },
+    {
+        "Name": "Dr. Mike Johnson",
+        "Medical Spa": "Precision Aesthetics",
+        "Location": "Chicago, IL",
+        "Contact": {
+            "Email": "mike@precisionaesthetics.com",
+            "Phone": "(555) 987-6543",
+            "SMS": "(555) 987-6543"
+        },
+        "Account Number": "MOXIE-2024"
+    }
+]
 
 # Embedding and retrieval functions
 def get_embeddings(texts):
@@ -98,25 +120,79 @@ if 'queries_escalated' not in st.session_state:
 if 'escalations' not in st.session_state:
     st.session_state.escalations = []
 
-# Escalation logic
-def determine_escalation(query):
-    compliance_keywords = [
-        "legal", "compliance", "regulation", "privacy", 
-        "confidentiality", "lawsuit", "liability"
-    ]
+# Provider Information Lookup
+def provider_information_lookup():
+    st.subheader("🔍 Provider Information Finder")
     
-    complexity_keywords = [
-        "complex", "strategy", "advanced", "comprehensive", 
-        "detailed analysis", "extensive"
-    ]
+    # Search inputs
+    search_type = st.selectbox("Search By", [
+        "Name", 
+        "Medical Spa", 
+        "Location", 
+        "Account Number"
+    ])
     
-    if any(keyword in query.lower() for keyword in compliance_keywords):
-        return True, "Compliance Review Needed"
+    search_query = st.text_input(f"Enter {search_type}")
     
-    if any(keyword in query.lower() for keyword in complexity_keywords):
-        return True, "Expert Review Required"
+    if search_query:
+        # Filter providers
+        results = [
+            provider for provider in PROVIDER_DATABASE 
+            if search_query.lower() in str(provider).lower()
+        ]
+        
+        if results:
+            for provider in results:
+                with st.expander(f"{provider['Name']} - {provider['Medical Spa']}"):
+                    st.json(provider)
+        else:
+            st.warning("No providers found matching your search.")
+
+# Communication Channels
+def communication_channels():
+    st.header("📡 Provider Communication")
     
-    return False, "Standard Query"
+    # Provider Lookup
+    provider_information_lookup()
+    
+    # Communication Method Selection
+    communication_method = st.selectbox("Communication Method", [
+        "Chat Support", 
+        "Email Response", 
+        "SMS Handling", 
+        "Help Center Ticket"
+    ])
+    
+    # Communication-specific inputs
+    if communication_method == "Chat Support":
+        st.subheader("Chat Support")
+        contact_message = st.text_area("Contact Providers")
+        
+    elif communication_method == "Email Response":
+        st.subheader("Email Response")
+        email_content = st.text_area("Compose Email")
+        recipient = st.selectbox("Select Recipient", 
+            [f"{p['Name']} - {p['Medical Spa']}" for p in PROVIDER_DATABASE]
+        )
+        
+    elif communication_method == "SMS Handling":
+        st.subheader("SMS Handling")
+        sms_message = st.text_area("Send SMS")
+        
+    elif communication_method == "Help Center Ticket":
+        st.subheader("Help Center Ticket")
+        ticket_details = st.text_area("Create Help Center Ticket")
+        ticket_type = st.selectbox("Ticket Type", [
+            "Technical Support",
+            "Billing Inquiry",
+            "Compliance Question",
+            "General Assistance"
+        ])
+    
+    # Send/Create Button
+    if st.button("Send/Create"):
+        ticket_id = f"MOXIE-{np.random.randint(1000, 9999)}"
+        st.success(f"Communication sent/ticket {ticket_id} created successfully!")
 
 # Main Application
 def main():
@@ -125,65 +201,45 @@ def main():
     st.markdown("""
         ### Empowering Provider Success Managers
         
-        Reduce workload, handle queries efficiently, and focus on critical business challenges.
+        Reduce workload, handle provider interactions efficiently, and focus on critical business challenges.
     """)
 
-    # Sidebar Navigation
-    with st.sidebar:
-        st.header("🤖 AI Agent Toolkit")
-        feature = st.radio("Choose Interaction Mode", [
-            "Query Assistance",
-            "Escalation Center", 
-            "Communication Channels",
-            "Query Library",
-            "Performance Insights"
-        ])
+    # Tab Navigation
+    tab1, tab2, tab3 = st.tabs([
+        "AI Chat Support Agent", 
+        "Escalation Center", 
+        "Insights & Library"
+    ])
 
-    # Feature-specific implementations
-    if feature == "Query Assistance":
-        st.header("🔍 Provider Query Assistance")
+    with tab1:
+        st.header("🤖 Provider Support")
         
-        # Query Input
-        psm_query = st.text_input("Enter a provider query", 
-            placeholder="e.g., How do I update billing information?"
-        )
+        # Question Types
+        question_type = st.selectbox("Select Question Type", [
+            "Routine Questions",
+            "Complex Questions", 
+            "Compliance Questions"
+        ])
         
-        # Example Quick Queries
-        st.markdown("**Quick Query Examples:**")
-        example_cols = st.columns(3)
-        example_queries = [
-            "Billing update process",
-            "Marketing compliance",
-            "Dashboard access"
-        ]
-        for col, query in zip(example_cols, example_queries):
-            if col.button(query):
-                psm_query = query
+        # Provider Question Input
+        provider_question = st.text_input("Enter Provider Question")
         
-        # AI-Powered Response
-        if psm_query:
-            # Determine escalation
-            needs_escalation, escalation_reason = determine_escalation(psm_query)
-            
+        if provider_question:
             # Generate AI Response
-            response, relevant_docs = ask_claude_with_rag(psm_query)
+            response, relevant_docs = ask_claude_with_rag(provider_question)
             
             # Display Response
-            st.markdown("### 🤖 AI Agent Response")
+            st.markdown("### 🤖 AI Support Response")
             st.info(response)
-            
-            # Escalation Handling
-            if needs_escalation:
-                st.warning(f"🚨 {escalation_reason}")
-                st.session_state.queries_escalated += 1
-            else:
-                st.session_state.queries_handled += 1
             
             # Retrieved Documents
             with st.expander("📚 Relevant Documentation"):
                 st.table(relevant_docs)
+        
+        # Communication Channels
+        communication_channels()
 
-    elif feature == "Escalation Center":
+    with tab2:
         st.header("🚨 Escalation Management")
         
         # Escalation Type Selection
@@ -220,64 +276,17 @@ def main():
             st.session_state.escalations.append(escalation_record)
             st.success(f"Escalation Ticket Created: {ticket_id}")
 
-    elif feature == "Communication Channels":
-        st.header("📡 Provider Communication Channels")
-        
-        # Channel Selection
-        channel = st.radio("Select Communication Method", [
-            "Chat Support",
-            "Email Response",
-            "SMS Handling",
-            "Help Center Ticket"
-        ])
-        
-        # Channel-Specific Inputs
-        if channel == "Chat Support":
-            st.write("🤖 Chat Support Simulation")
-            chat_query = st.text_input("Enter Provider Query")
-            if chat_query:
-                st.info("AI-Generated Chat Response Placeholder")
-        
-        elif channel == "Email Response":
-            st.write("📧 Email Response Generator")
-            email_context = st.text_area("Provide Email Context")
-            if st.button("Generate Email Draft"):
-                st.code("AI-Generated Email Draft Placeholder")
-
-    elif feature == "Query Library":
-        st.header("🗂️ Provider Query Reference")
-        
-        query_categories = {
-            "Billing": [
-                "Update payment method",
-                "Understand billing cycles"
-            ],
-            "Technical Support": [
-                "Software integration",
-                "Dashboard access"
-            ],
-            "Compliance": [
-                "HIPAA regulations",
-                "Marketing guidelines"
-            ]
-        }
-        
-        for category, queries in query_categories.items():
-            with st.expander(category):
-                for query in queries:
-                    st.write(f"- {query}")
-
-    else:  # Performance Insights
-        st.header("📊 PSM Efficiency Metrics")
+    with tab3:
+        st.header("📊 Insights & Library")
         
         # Key Metrics
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Queries Handled", st.session_state.queries_handled)
+            st.metric("Questions Handled", st.session_state.queries_handled)
         
         with col2:
-            st.metric("Queries Escalated", st.session_state.queries_escalated)
+            st.metric("Escalations", st.session_state.queries_escalated)
         
         with col3:
             escalation_rate = (
