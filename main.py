@@ -6,8 +6,11 @@ import faiss
 import numpy as np
 import plotly.express as px
 
+# Load API key from Streamlit secrets
+api_key = st.secrets["anthropic"]["api_key"]
+
 # Initialize Claude client
-client = Anthropic(api_key="your_anthropic_api_key")  # Replace with your Anthropic API key
+client = Anthropic(api_key=api_key)
 
 # Load internal documentation from CSV
 internal_docs_df = pd.read_csv("internal_docs.csv")
