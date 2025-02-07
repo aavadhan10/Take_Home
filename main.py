@@ -1,12 +1,11 @@
+
+Copy
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
 from transformers import AutoTokenizer, AutoModel
 import torch
 from anthropic import Anthropic
-import os
-import json
 
 # Move page config to the top
 st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
@@ -18,11 +17,9 @@ except Exception as e:
     st.error(f"Error loading API key: {e}")
     api_key = None
 
-# Initialize Anthropic client with explicit configuration
+# Initialize Anthropic client
 try:
-    client = Anthropic(
-        api_key=api_key
-    )
+    client = Anthropic(api_key=api_key)
 except Exception as e:
     st.error(f"Error initializing Anthropic client: {e}")
     client = None
@@ -40,43 +37,19 @@ model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
 # Load internal documentation
 @st.cache_data
 def load_docs():
-    return pd.read_csv("internal_docs.csv")
-
-@st.cache_data
-def load_provider_queries():
-    return pd.read_csv("provider_queries.csv")
-
-# Load predefined query types
-@st.cache_data
-def load_query_types():
-    return {
-        "Routine": [
-            "How do I update my billing information?",
-            "What are the business hours for support?",
-            "How do I access my dashboard?"
-        ],
-        "Compliance": [
-            "Are there any legal restrictions on marketing?",
-            "What are the data privacy guidelines?",
-            "How do I handle patient confidentiality?"
-        ],
-        "Complex": [
-            "I'm experiencing issues with patient management software",
-            "How can I optimize my medspa's marketing strategy?",
-            "What financial reporting do I need to maintain?"
-        ]
-    }
+    try:
+        return pd.read_csv("internal_docs.csv")
+    except FileNotFoundError:
+        st.error("Error: 'internal_docs.csv' not found. Please ensure the file exists.")
+        return pd.DataFrame()
 
 # Embedding and retrieval functions
 def get_embeddings(texts):
     encoded_input = tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
-    
     with torch.no_grad():
         model_output = model(**encoded_input)
-    
     embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
     embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-    
     return embeddings.numpy()
 
 # Load and prepare embeddings
@@ -92,7 +65,6 @@ def retrieve_documents(query, top_k=3):
 
 # RAG with Claude
 def ask_claude_with_rag(query):
-    # Check if client is initialized
     if client is None:
         st.error("Anthropic client not initialized. Unable to generate response.")
         return "Error: AI assistant is currently unavailable.", pd.DataFrame()
@@ -113,7 +85,6 @@ def ask_claude_with_rag(query):
         If the query involves sensitive topics like compliance, legal, or requires specialized expertise, indicate it needs escalation.
         """
         
-        # Use Claude 3 Haiku which is more widely available
         response = client.messages.create(
             model="claude-3-haiku-20240307",
             max_tokens=500,
@@ -128,42 +99,10 @@ def ask_claude_with_rag(query):
 
 # Escalation logic
 def determine_escalation(query):
-    compliance_keywords = [
-        "legal", "compliance", "regulation", "privacy", 
-        "confidentiality", "lawsuit", "liability"
-    ]
-    
+    compliance_keywords = ["legal", "compliance", "regulation", "privacy", "confidentiality", "lawsuit", "liability"]
     if any(keyword in query.lower() for keyword in compliance_keywords):
         return True, "Compliance Review Needed"
-    
-    complexity_keywords = [
-        "complex", "strategy", "advanced", "comprehensive", 
-        "detailed analysis", "extensive"
-    ]
-    
-    if any(keyword in query.lower() for keyword in complexity_keywords):
-        return True, "Expert Review Required"
-    
     return False, "Standard Query"
-
-# Debugging route
-def debug_anthropic_connection():
-    st.header("Anthropic API Connection Debug")
-    st.write("API Key Present:", bool(api_key))
-    
-    if client:
-        try:
-            test_response = client.messages.create(
-                model="claude-3-haiku-20240307",
-                max_tokens=50,
-                messages=[{"role": "user", "content": "Hello, can you confirm you're working?"}]
-            )
-            st.success("Successfully connected to Anthropic API!")
-            st.write("Test Response:", test_response.content[0].text)
-        except Exception as e:
-            st.error(f"Connection test failed: {e}")
-    else:
-        st.error("Client not initialized")
 
 # Initialize session state
 if 'queries_handled' not in st.session_state:
@@ -173,76 +112,65 @@ if 'queries_escalated' not in st.session_state:
 
 # Title and Overview
 st.title("🚀 Moxie AI Support Agent")
-st.markdown("### Empowering Provider Success Managers")
+st.markdown("### Empowering Provider Success Managers with AI-powered assistance")
 
 # Sidebar for User Interactions and Metrics
 with st.sidebar:
     st.header("🤖 AI Agent Dashboard")
     
-    # Debugging button
-    if st.button("Debug Anthropic Connection"):
-        debug_anthropic_connection()
-    
-    # PSM-Facing Metrics
-    st.subheader("Performance Metrics")
+    # Communication channel selection
+    st.subheader("📞 Communication Channel")
+    support_channel = st.radio(
+        "Select Channel",
+        ["Chat Support", "Email Response", "SMS Handling", "Help Center Ticket"],
+        key="support_channel"
+    )
+    st.write(f"Selected Channel: **{support_channel}**")
+
+    # Provider information lookup
+    st.subheader("🔍 Find Provider Information")
+    provider_data = {
+        "Provider 1": {"Email": "provider1@example.com", "Phone": "123-456-7890"},
+        "Provider 2": {"Email": "provider2@example.com", "Phone": "987-654-3210"},
+    }
+    provider_name = st.selectbox("Select Provider", list(provider_data.keys()))
+    if provider_name:
+        st.write(f"**Email:** {provider_data[provider_name]['Email']}")
+        st.write(f"**Phone:** {provider_data[provider_name]['Phone']}")
+
+    # Performance metrics
+    st.subheader("📊 Performance Metrics")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Queries Handled", st.session_state.queries_handled)
+        st.metric("Questions Answered", st.session_state.queries_handled)
     with col2:
-        st.metric("Queries Escalated", st.session_state.queries_escalated)
-    
-    # Example Query Types
-    st.subheader("Query Type Examples")
-    query_types = load_query_types()
-    for category, queries in query_types.items():
-        with st.expander(f"{category} Queries"):
-            for q in queries:
-                st.write(f"- {q}")
-    
-    # Feedback Mechanism
-    st.subheader("Your Feedback")
-    feedback = st.radio("How is the AI agent helping?", 
-                        ["👍 Very Helpful", "👀 Needs Improvement", "🤔 Neutral"])
-    if st.button("Submit Feedback"):
-        st.success("Thank you for your feedback!")
+        st.metric("Questions Escalated", st.session_state.queries_escalated)
 
 # Main Interface
-col1, col2 = st.columns([2, 1])
+st.header("🔍 What can we help you with today?")
+psm_query = st.text_input("Ask your question", placeholder="Type your question here...")
 
-with col1:
-    st.header("🔍 Query Interface")
-    
-    # Query Input with Examples
-    query_placeholder = "Ask a question about your medical spa business..."
-    psm_query = st.text_input("Enter Your Query", placeholder=query_placeholder)
-    
-    # Example Query Buttons
-    st.markdown("**Quick Examples:**")
-    example_cols = st.columns(3)
-    example_queries = [
-        "How do I update billing info?",
-        "Marketing compliance guidelines",
-        "Patient data privacy"
-    ]
-    for col, query in zip(example_cols, example_queries):
-        if col.button(query):
-            psm_query = query
-
-with col2:
-    st.header("📋 Query Details")
-    # Placeholder for query details
-    query_details_container = st.container()
+# Example query buttons
+st.markdown("**Need inspiration? Try these examples:**")
+example_cols = st.columns(3)
+example_queries = [
+    "How do I update billing info?",
+    "What are the marketing guidelines?",
+    "How do I handle patient data?"
+]
+for col, query in zip(example_cols, example_queries):
+    if col.button(query):
+        psm_query = query
 
 # Query Processing
 if psm_query:
-    # Additional error checking
     if api_key is None or client is None:
         st.error("AI assistant is not configured. Please check your API key.")
     else:
         # Determine if escalation is needed
         needs_escalation, escalation_reason = determine_escalation(psm_query)
         
-        # Generate AI Response with error handling
+        # Generate AI Response
         response, relevant_docs = ask_claude_with_rag(psm_query)
         
         # Update Metrics
@@ -252,18 +180,31 @@ if psm_query:
             st.session_state.queries_handled += 1
         
         # Display Response
-        st.markdown("### 🤖 AI Agent Response")
+        st.markdown("### 🤖 Here’s what I found:")
         st.info(response)
         
-        # Query Details
-        with query_details_container:
-            st.markdown("**Query Analysis**")
-            st.write(f"**Type:** {'Escalated' if needs_escalation else 'Handled'}")
-            st.write(f"**Reason:** {escalation_reason}")
-        
+        # Escalation Buttons
+        with st.expander("🚨 Escalation Options"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("Escalate to Compliance"):
+                    st.session_state.escalation_status = "Compliance"
+                    st.success("This has been escalated to the Compliance team!")
+            with col2:
+                if st.button("Escalate to Legal"):
+                    st.session_state.escalation_status = "Legal"
+                    st.success("This has been escalated to the Legal team!")
+            with col3:
+                if st.button("Escalate to Finance"):
+                    st.session_state.escalation_status = "Finance"
+                    st.success("This has been escalated to the Finance team!")
+
         # Retrieved Documents
         with st.expander("📚 Relevant Documentation"):
-            st.table(relevant_docs)
+            for idx, row in relevant_docs.iterrows():
+                st.markdown(f"**{row['question']}**")
+                st.write(row['answer'])
+                st.markdown("---")
 
 # Footer
 st.markdown("---")
