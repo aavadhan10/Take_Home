@@ -1,28 +1,34 @@
 import streamlit as st
-from anthropic import Anthropic
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 import plotly.express as px
+from sentence_transformers import SentenceTransformer
+from anthropic import Anthropic
 
 # Load API key from Streamlit secrets
 api_key = st.secrets["anthropic"]["api_key"]
-
-# Initialize Claude client
 client = Anthropic(api_key=api_key)
 
-# Load internal documentation from CSV
-internal_docs_df = pd.read_csv("internal_docs.csv")
+# Load internal documentation
+@st.cache_data
+def load_docs():
+    return pd.read_csv("internal_docs.csv")
 
-# Load provider queries from CSV (for display purposes)
-provider_queries_df = pd.read_csv("provider_queries.csv")
+internal_docs_df = load_docs()
+
+# Load example provider queries
+@st.cache_data
+def load_provider_queries():
+    return pd.read_csv("provider_queries.csv")
+
+provider_queries_df = load_provider_queries()
 
 # Step 1: Create embeddings for internal docs
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer("all-MiniLM-L6-v2")
 doc_embeddings = model.encode(internal_docs_df["question"].tolist())
 
-# Step 2: Build a FAISS index
+# Step 2: Build FAISS index
 dimension = doc_embeddings.shape[1]
 index = faiss.IndexFlatL2(dimension)
 index.add(doc_embeddings)
@@ -35,11 +41,9 @@ def retrieve_documents(query, top_k=3):
 
 # Step 4: Generate response using RAG
 def ask_claude_with_rag(query):
-    # Retrieve relevant documents
     relevant_docs = retrieve_documents(query)
     context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
-    
-    # Generate response using Claude
+
     response = client.messages.create(
         model="claude-3.5-sonnet",
         max_tokens=500,
@@ -47,11 +51,11 @@ def ask_claude_with_rag(query):
     )
     return response.content[0].text, relevant_docs
 
-# Streamlit app title
+# Streamlit UI
 st.title("🚀 Moxie AI Agent for PSMs")
 st.markdown("### AI-Powered Support to Reduce Your Workload")
 
-# Sidebar for metrics and feedback
+# Sidebar for Metrics and Feedback
 st.sidebar.header("📊 PSM Metrics")
 queries_handled = st.sidebar.number_input("Queries Handled by AI", value=42)
 queries_escalated = st.sidebar.number_input("Queries Escalated to You", value=5)
@@ -63,7 +67,7 @@ feedback = st.sidebar.radio("How is the AI agent helping you?", ["👍 Great", "
 if feedback:
     st.sidebar.success("Thank you for your feedback!")
 
-# Main app interface
+# Main Interface
 st.header("🤖 AI Agent Interface")
 st.markdown("**Ask the AI agent for help with provider queries.**")
 
