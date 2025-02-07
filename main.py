@@ -1,4 +1,7 @@
 import streamlit as st
+st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
+
+# Rest of your existing imports
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -7,6 +10,7 @@ import torch
 from anthropic import Anthropic
 import os
 import json
+
 
 # Load API key from Streamlit secrets
 api_key = st.secrets["anthropic_api_key"]
