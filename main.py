@@ -11,13 +11,24 @@ import json
 # Move page config to the top
 st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
 
-# Remove the main() function wrapper
 # Load API key from Streamlit secrets
-api_key = st.secrets["anthropic_api_key"]
-os.environ["ANTHROPIC_API_KEY"] = api_key
+try:
+    api_key = st.secrets["anthropic_api_key"]
+    api_url = st.secrets.get("claude_api_url", "https://api.anthropic.com/v1")
+except Exception as e:
+    st.error(f"Error loading API key: {e}")
+    api_key = None
+    api_url = None
 
-# Initialize Anthropic client
-client = Anthropic()
+# Initialize Anthropic client with explicit configuration
+try:
+    client = Anthropic(
+        api_key=api_key,
+        base_url=api_url
+    )
+except Exception as e:
+    st.error(f"Error initializing Anthropic client: {e}")
+    client = None
 
 # Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
@@ -84,28 +95,38 @@ def retrieve_documents(query, top_k=3):
 
 # RAG with Claude
 def ask_claude_with_rag(query):
-    relevant_docs = retrieve_documents(query)
-    context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
-    
-    full_prompt = f"""
-    You are an AI assistant for Moxie, supporting Provider Success Managers (PSMs) and medical spa providers.
+    # Check if client is initialized
+    if client is None:
+        st.error("Anthropic client not initialized. Unable to generate response.")
+        return "Error: AI assistant is currently unavailable.", pd.DataFrame()
 
-    Context from internal documentation:
-    {context}
+    try:
+        relevant_docs = retrieve_documents(query)
+        context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
+        
+        full_prompt = f"""
+        You are an AI assistant for Moxie, supporting Provider Success Managers (PSMs) and medical spa providers.
 
-    Provide a helpful, professional response to the following query:
-    {query}
+        Context from internal documentation:
+        {context}
 
-    If the query involves sensitive topics like compliance, legal, or requires specialized expertise, indicate it needs escalation.
-    """
+        Provide a helpful, professional response to the following query:
+        {query}
+
+        If the query involves sensitive topics like compliance, legal, or requires specialized expertise, indicate it needs escalation.
+        """
+        
+        response = client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=500,
+            messages=[{"role": "user", "content": full_prompt}]
+        )
+        
+        return response.content[0].text, relevant_docs
     
-    response = client.messages.create(
-        model="claude-3.5-sonnet",
-        max_tokens=500,
-        messages=[{"role": "user", "content": full_prompt}]
-    )
-    
-    return response.content[0].text, relevant_docs
+    except Exception as e:
+        st.error(f"Error generating AI response: {e}")
+        return f"Error: Unable to generate response. {str(e)}", relevant_docs
 
 # Escalation logic
 def determine_escalation(query):
@@ -127,6 +148,26 @@ def determine_escalation(query):
     
     return False, "Standard Query"
 
+# Debugging route
+def debug_anthropic_connection():
+    st.header("Anthropic API Connection Debug")
+    st.write("API Key Present:", bool(api_key))
+    st.write("API URL:", api_url)
+    
+    if client:
+        try:
+            test_response = client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=50,
+                messages=[{"role": "user", "content": "Hello, can you confirm you're working?"}]
+            )
+            st.success("Successfully connected to Anthropic API!")
+            st.write("Test Response:", test_response.content[0].text)
+        except Exception as e:
+            st.error(f"Connection test failed: {e}")
+    else:
+        st.error("Client not initialized")
+
 # Initialize session state
 if 'queries_handled' not in st.session_state:
     st.session_state.queries_handled = 0
@@ -140,6 +181,10 @@ st.markdown("### Empowering Provider Success Managers")
 # Sidebar for User Interactions and Metrics
 with st.sidebar:
     st.header("🤖 AI Agent Dashboard")
+    
+    # Debugging button
+    if st.button("Debug Anthropic Connection"):
+        debug_anthropic_connection()
     
     # PSM-Facing Metrics
     st.subheader("Performance Metrics")
@@ -193,31 +238,35 @@ with col2:
 
 # Query Processing
 if psm_query:
-    # Determine if escalation is needed
-    needs_escalation, escalation_reason = determine_escalation(psm_query)
-    
-    # Generate AI Response
-    response, relevant_docs = ask_claude_with_rag(psm_query)
-    
-    # Update Metrics
-    if needs_escalation:
-        st.session_state.queries_escalated += 1
+    # Additional error checking
+    if api_key is None or client is None:
+        st.error("AI assistant is not configured. Please check your API key.")
     else:
-        st.session_state.queries_handled += 1
-    
-    # Display Response
-    st.markdown("### 🤖 AI Agent Response")
-    st.info(response)
-    
-    # Query Details
-    with query_details_container:
-        st.markdown("**Query Analysis**")
-        st.write(f"**Type:** {'Escalated' if needs_escalation else 'Handled'}")
-        st.write(f"**Reason:** {escalation_reason}")
-    
-    # Retrieved Documents
-    with st.expander("📚 Relevant Documentation"):
-        st.table(relevant_docs)
+        # Determine if escalation is needed
+        needs_escalation, escalation_reason = determine_escalation(psm_query)
+        
+        # Generate AI Response with error handling
+        response, relevant_docs = ask_claude_with_rag(psm_query)
+        
+        # Update Metrics
+        if needs_escalation:
+            st.session_state.queries_escalated += 1
+        else:
+            st.session_state.queries_handled += 1
+        
+        # Display Response
+        st.markdown("### 🤖 AI Agent Response")
+        st.info(response)
+        
+        # Query Details
+        with query_details_container:
+            st.markdown("**Query Analysis**")
+            st.write(f"**Type:** {'Escalated' if needs_escalation else 'Handled'}")
+            st.write(f"**Reason:** {escalation_reason}")
+        
+        # Retrieved Documents
+        with st.expander("📚 Relevant Documentation"):
+            st.table(relevant_docs)
 
 # Footer
 st.markdown("---")
