@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import faiss
 import numpy as np
 import plotly.express as px
 from sentence_transformers import SentenceTransformer
@@ -14,36 +13,35 @@ client = Anthropic(api_key=api_key)
 @st.cache_data
 def load_docs():
     return pd.read_csv("internal_docs.csv")
-
 internal_docs_df = load_docs()
 
 # Load example provider queries
 @st.cache_data
 def load_provider_queries():
     return pd.read_csv("provider_queries.csv")
-
 provider_queries_df = load_provider_queries()
 
 # Step 1: Create embeddings for internal docs
 model = SentenceTransformer("all-MiniLM-L6-v2")
 doc_embeddings = model.encode(internal_docs_df["question"].tolist())
 
-# Step 2: Build FAISS index
-dimension = doc_embeddings.shape[1]
-index = faiss.IndexFlatL2(dimension)
-index.add(doc_embeddings)
-
-# Step 3: Retrieve relevant documents
+# Step 2: Retrieve relevant documents using NumPy
 def retrieve_documents(query, top_k=3):
+    # Encode the query
     query_embedding = model.encode([query])
-    distances, indices = index.search(query_embedding, top_k)
-    return internal_docs_df.iloc[indices[0]]
+    
+    # Calculate cosine similarities
+    similarities = np.dot(doc_embeddings, query_embedding.T).flatten()
+    
+    # Get top-k indices
+    top_k_indices = similarities.argsort()[-top_k:][::-1]
+    
+    return internal_docs_df.iloc[top_k_indices]
 
-# Step 4: Generate response using RAG
+# Step 3: Generate response using RAG
 def ask_claude_with_rag(query):
     relevant_docs = retrieve_documents(query)
     context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
-
     response = client.messages.create(
         model="claude-3.5-sonnet",
         max_tokens=500,
@@ -51,7 +49,7 @@ def ask_claude_with_rag(query):
     )
     return response.content[0].text, relevant_docs
 
-# Streamlit UI
+# Streamlit UI (rest of your existing code remains the same)
 st.title("🚀 Moxie AI Agent for PSMs")
 st.markdown("### AI-Powered Support to Reduce Your Workload")
 
@@ -60,7 +58,6 @@ st.sidebar.header("📊 PSM Metrics")
 queries_handled = st.sidebar.number_input("Queries Handled by AI", value=42)
 queries_escalated = st.sidebar.number_input("Queries Escalated to You", value=5)
 average_response_time = st.sidebar.text_input("Average Response Time", value="2.3s")
-
 st.sidebar.markdown("---")
 st.sidebar.header("🌟 Your Feedback")
 feedback = st.sidebar.radio("How is the AI agent helping you?", ["👍 Great", "👎 Needs Improvement"])
@@ -81,7 +78,6 @@ with st.expander("💬 Example Provider Queries"):
 
 # PSM query input
 psm_query = st.text_input("Ask a question (e.g., 'How do I update billing information?')")
-
 if psm_query:
     # Generate response using RAG
     response, relevant_docs = ask_claude_with_rag(psm_query)
