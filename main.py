@@ -5,10 +5,14 @@ import plotly.express as px
 from transformers import AutoTokenizer, AutoModel
 import torch
 from anthropic import Anthropic
+import os
 
 # Load API key from Streamlit secrets
 api_key = st.secrets["anthropic_api_key"]
-client = Anthropic(api_key=api_key)
+os.environ["ANTHROPIC_API_KEY"] = api_key
+
+# Initialize Anthropic client
+client = Anthropic()
 
 # Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
