@@ -358,20 +358,19 @@ with tab1:
             "response": response,
             "channel": selected_channel
         })
-# Sentiment Analysis Utility
+ Sentiment and Escalation Utility Functions
 def analyze_sentiment(text):
     """
-    Simulate sentiment analysis to determine response strategy.
+    Simple sentiment analysis to determine escalation likelihood.
     Returns a sentiment score between -1 (very negative) and 1 (very positive)
     """
     try:
         from textblob import TextBlob
-        sentiment = TextBlob(text).sentiment.polarity
-        return sentiment
+        return TextBlob(text).sentiment.polarity
     except ImportError:
-        # Fallback simple sentiment analysis if TextBlob is not available
-        negative_words = ['problem', 'issue', 'complaint', 'failure', 'error', 'urgent', 'critical']
-        positive_words = ['help', 'support', 'assistance', 'resolve', 'improve']
+        # Fallback simple sentiment analysis
+        negative_words = ['problem', 'issue', 'complaint', 'urgent', 'critical', 'error']
+        positive_words = ['help', 'support', 'resolve', 'improve']
         
         lower_text = text.lower()
         negative_count = sum(word in lower_text for word in negative_words)
@@ -379,285 +378,186 @@ def analyze_sentiment(text):
         
         return (positive_count - negative_count) / (positive_count + negative_count + 1)
 
-def determine_response_strategy(query, confidence_metrics):
+def determine_escalation_score(text):
     """
-    Determine whether to respond autonomously or escalate based on:
-    1. Sentiment analysis
-    2. AI confidence metrics
-    3. Query complexity
+    Calculate an escalation score based on sentiment and key indicators
     """
-    # Analyze sentiment
-    sentiment_score = analyze_sentiment(query)
+    sentiment = analyze_sentiment(text)
     
-    # Extract confidence metrics
-    confidence_score = confidence_metrics.get('score', 0)
-    confidence_level = confidence_metrics.get('level', 'Low')
-    
-    # Decision matrix for response strategy
-    if sentiment_score < -0.5 or confidence_score < 40:
+    # Escalation scoring logic
+    if sentiment < -0.5:
         return {
-            "strategy": "Escalate",
-            "reason": [
-                f"Negative Sentiment: {sentiment_score:.2f}" if sentiment_score < -0.5 else "",
-                f"Low Confidence: {confidence_score}%" if confidence_score < 40 else ""
-            ]
+            "score": 90,  # High likelihood of escalation
+            "recommendation": "Immediate Escalation",
+            "reason": "Strongly negative sentiment detected"
         }
-    elif confidence_score < 60:
+    elif sentiment < 0:
         return {
-            "strategy": "Partial Response",
-            "reason": [
-                f"Moderate Confidence: {confidence_score}%",
-                f"Sentiment Neutral: {sentiment_score:.2f}"
-            ]
+            "score": 60,  # Moderate escalation risk
+            "recommendation": "Review and Potentially Escalate",
+            "reason": "Negative sentiment detected"
+        }
+    elif sentiment == 0:
+        return {
+            "score": 30,  # Low escalation risk
+            "recommendation": "Standard Response",
+            "reason": "Neutral sentiment"
         }
     else:
         return {
-            "strategy": "Autonomous Response",
-            "reason": [
-                f"High Confidence: {confidence_score}%",
-                f"Positive/Neutral Sentiment: {sentiment_score:.2f}"
-            ]
+            "score": 10,  # Minimal escalation risk
+            "recommendation": "Standard Response",
+            "reason": "Positive or neutral sentiment"
         }
 
-# Tab 2: Escalation Center
+# Tab 2: Escalation and Response Management
 with tab2:
-    st.markdown("### 🚨 Intelligent Response Management")
-    
-    # Ensure session state variables are initialized with some default data
-    if 'escalations' not in st.session_state or not st.session_state.escalations:
+    # Initialize default escalations for demo
+    if 'escalations' not in st.session_state:
         st.session_state.escalations = [
             {
-                "query": "Patient data privacy concern",
-                "reason": "Compliance, Legal",
-                "priority": "High",
-                "status": "Pending",
-                "additional_context": "Potential HIPAA violation reported",
+                "query": "I've been waiting for weeks and still haven't received my order. This is unacceptable!",
+                "risk_score": 90,
+                "recommendation": "Immediate Escalation",
+                "reason": "Strongly negative sentiment detected",
                 "timestamp": pd.Timestamp.now() - pd.Timedelta(days=2)
             },
             {
-                "query": "Billing system integration issue",
-                "reason": "Technical",
-                "priority": "Medium",
-                "status": "In Progress",
-                "additional_context": "Requires IT department review",
-                "timestamp": pd.Timestamp.now() - pd.Timedelta(days=1)
-            }
-        ]
-    
-    # Ensure AI confidence log has some default data
-    if 'ai_confidence_log' not in st.session_state or not st.session_state.ai_confidence_log:
-        st.session_state.ai_confidence_log = [
-            {
-                "query": "How to update patient records?",
-                "confidence_score": 85.5,
-                "confidence_level": "High",
-                "avg_similarity": 78.2,
-                "doc_coverage": 65.3,
+                "query": "I'm having some difficulties with the billing process.",
+                "risk_score": 60,
+                "recommendation": "Review and Potentially Escalate",
+                "reason": "Negative sentiment detected",
                 "timestamp": pd.Timestamp.now() - pd.Timedelta(days=1)
             },
             {
-                "query": "Complex billing question",
-                "confidence_score": 42.7,
-                "confidence_level": "Low",
-                "avg_similarity": 35.6,
-                "doc_coverage": 40.1,
+                "query": "Your product is great and has really helped my business!",
+                "risk_score": 10,
+                "recommendation": "Standard Response",
+                "reason": "Positive or neutral sentiment",
                 "timestamp": pd.Timestamp.now() - pd.Timedelta(hours=12)
             }
         ]
     
-    # Tabs for different views
-    esc_tabs = st.tabs([
-        "📋 Response Strategy Analyzer", 
-        "🔍 Escalation Log", 
-        "📡 AI Confidence Analytics"
-    ])
+    st.markdown("# 🚨 Customer Response Management")
     
-    # Response Strategy Analyzer Tab
-    with esc_tabs[0]:
-        st.markdown("### 🤖 AI Response Strategy Simulator")
+    # Tabs for different views
+    tab1, tab2 = st.tabs(["📊 Escalation Analyzer", "💬 Response Composer"])
+    
+    # Escalation Analyzer Tab
+    with tab1:
+        st.markdown("## 🔍 Escalation Risk Assessment")
         
-        # Input for query simulation
-        query = st.text_area("Enter a sample query to analyze response strategy:", 
-                             placeholder="Type a query to see how AI would handle it...")
+        # Input for query analysis
+        query = st.text_area("Enter Customer Message:", 
+                             placeholder="Paste the customer message here to assess escalation risk...")
         
-        # Simulate confidence metrics (in real app, this would come from actual AI processing)
-        mock_confidence_metrics = {
-            "score": st.slider("Mock Confidence Score", 0, 100, 50),
-            "level": st.selectbox("Mock Confidence Level", ["Low", "Medium", "High"], index=1)
-        }
-        
-        # Create Escalation Section
-        st.markdown("### 🚨 Create New Escalation")
-        esc_col1, esc_col2 = st.columns([2,1])
-        with esc_col1:
-            escalation_query = st.text_input("Query to Escalate", 
-                                             value=query if query else "")
-            escalation_reason = st.multiselect(
-                "Reason(s)",
-                ["Compliance", "Legal", "Technical", "AI Low Confidence", "Complex Query", "Other"]
-            )
-            additional_context = st.text_area("Additional Context", height=100)
-        with esc_col2:
-            priority = st.select_slider(
-                "Priority",
-                ["Low", "Medium", "High", "Urgent"]
-            )
+        # Analyze and display escalation risk
+        if query:
+            escalation_result = determine_escalation_score(query)
             
-            # Analyze and display response strategy if query exists
-            if query:
-                response_strategy = determine_response_strategy(query, mock_confidence_metrics)
-                
-                # Visualization of response strategy
-                st.markdown(f"""
-                ### 🎯 Response Strategy Breakdown
-                
-                **Recommended Action**: 🏷️ **{response_strategy['strategy']}**
-                
-                #### 🔍 Reasoning:
-                {chr(10).join(f"- {reason}" for reason in response_strategy['reason'] if reason)}
-                
-                #### 📊 Detailed Metrics:
-                - **Sentiment Score**: {analyze_sentiment(query):.2f}
-                - **Confidence Score**: {mock_confidence_metrics['score']}%
-                - **Confidence Level**: {mock_confidence_metrics['level']}
-                """)
+            # Escalation Risk Visualization
+            st.markdown(f"""
+            ### Escalation Risk Analysis
             
-            # Submit Escalation Button
-            if st.button("🚨 Create Escalation", type="primary"):
+            **Risk Score**: {escalation_result['score']}/100
+            
+            **Recommendation**: {escalation_result['recommendation']}
+            
+            **Reasoning**: {escalation_result['reason']}
+            
+            #### Sentiment Breakdown
+            Sentiment Score: {analyze_sentiment(query):.2f}
+            """)
+            
+            # Color-coded progress bar for risk
+            risk_color = (
+                "red" if escalation_result['score'] > 70 else 
+                "orange" if escalation_result['score'] > 40 else 
+                "green"
+            )
+            st.progress(escalation_result['score']/100, text=f"Escalation Risk: {escalation_result['score']}%")
+            
+            # Create Escalation Button
+            if st.button("🚨 Create Escalation"):
+                # Log the escalation
                 escalation_entry = {
-                    "query": escalation_query,
-                    "reason": ", ".join(escalation_reason) if escalation_reason else "Unspecified",
-                    "priority": priority,
-                    "status": "Pending",
-                    "additional_context": additional_context,
+                    "query": query,
+                    "risk_score": escalation_result['score'],
+                    "recommendation": escalation_result['recommendation'],
+                    "reason": escalation_result['reason'],
                     "timestamp": pd.Timestamp.now()
                 }
-                st.session_state.escalations.append(escalation_entry)
-                st.session_state.queries_escalated += 1
-                st.success("Escalation created successfully!")
-    
-    # Escalation Log Tab
-    with esc_tabs[1]:
-        st.markdown("### 📋 Escalation Log")
-        
-        # Ensure escalations exist
-        if st.session_state.escalations:
-            # Escalation Log DataFrame
-            escalation_df = pd.DataFrame(st.session_state.escalations)
-            
-            # Filtering options
-            col1, col2 = st.columns(2)
-            with col1:
-                filter_priority = st.multiselect(
-                    "Filter by Priority", 
-                    options=["Low", "Medium", "High", "Urgent"],
-                    default=["High", "Urgent"]
-                )
-            with col2:
-                filter_status = st.multiselect(
-                    "Filter by Status",
-                    options=["Pending", "In Progress", "Resolved"],
-                    default=["Pending"]
-                )
-            
-            # Apply filters
-            filtered_df = escalation_df[
-                escalation_df['priority'].isin(filter_priority) &
-                escalation_df['status'].isin(filter_status)
-            ]
-            
-            # Display filtered escalations
-            st.dataframe(
-                filtered_df,
-                use_container_width=True,
-                column_config={
-                    "query": st.column_config.TextColumn("Query"),
-                    "reason": st.column_config.TextColumn("Reason"),
-                    "priority": st.column_config.SelectboxColumn(
-                        "Priority",
-                        options=["Low", "Medium", "High", "Urgent"],
-                        required=True
-                    ),
-                    "status": st.column_config.SelectboxColumn(
-                        "Status",
-                        options=["Pending", "In Progress", "Resolved"],
-                        required=True
-                    ),
-                    "timestamp": st.column_config.DatetimeColumn("Timestamp")
-                }
-            )
-        else:
-            st.info("No escalations in the log")
-    
-    # AI Confidence Analytics Tab
-    with esc_tabs[2]:
-        st.markdown("### 📡 AI Confidence Analytics")
-        
-        # Ensure AI confidence log exists
-        if st.session_state.ai_confidence_log:
-            import matplotlib.pyplot as plt
-            
-            confidence_df = pd.DataFrame(st.session_state.ai_confidence_log)
-            
-            # Confidence Level Breakdown
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("#### Confidence Level Distribution")
-                confidence_level_counts = confidence_df['confidence_level'].value_counts()
                 
-                fig1 = plt.figure(figsize=(8, 6))
-                plt.pie(
-                    confidence_level_counts, 
-                    labels=confidence_level_counts.index, 
-                    autopct='%1.1f%%',
-                    colors=['green', 'orange', 'red']
-                )
-                plt.title("AI Response Confidence Levels")
-                st.pyplot(fig1)
-                plt.close(fig1)
+                st.session_state.escalations.append(escalation_entry)
+                st.success("Escalation logged successfully!")
+        
+        # Display Existing Escalations
+        st.markdown("## 📋 Existing Escalations")
+        if st.session_state.escalations:
+            # Convert to DataFrame for better display
+            escalations_df = pd.DataFrame(st.session_state.escalations)
             
-            with col2:
-                st.markdown("#### Confidence Score Over Time")
-                fig2, ax = plt.subplots(figsize=(10, 6))
-                confidence_df.plot(
-                    x='timestamp', 
-                    y='confidence_score', 
-                    kind='line', 
-                    ax=ax,
-                    marker='o'
-                )
-                plt.title("AI Confidence Score Trend")
-                plt.xlabel("Timestamp")
-                plt.ylabel("Confidence Score")
-                st.pyplot(fig2)
-                plt.close(fig2)
-            
-            # Detailed Confidence Metrics
-            st.markdown("#### Detailed Confidence Metrics")
+            # Display escalations
             st.dataframe(
-                confidence_df[['query', 'confidence_score', 'confidence_level', 'avg_similarity', 'doc_coverage', 'timestamp']],
-                use_container_width=True,
+                escalations_df,
                 column_config={
-                    "query": "Query",
-                    "confidence_score": st.column_config.NumberColumn(
-                        "Confidence Score",
-                        format="%.2f%%"
+                    "query": "Customer Message",
+                    "risk_score": st.column_config.NumberColumn(
+                        "Risk Score",
+                        format="%d"
                     ),
-                    "confidence_level": st.column_config.TextColumn("Confidence Level"),
-                    "avg_similarity": st.column_config.NumberColumn(
-                        "Avg Document Similarity",
-                        format="%.2f%%"
-                    ),
-                    "doc_coverage": st.column_config.NumberColumn(
-                        "Document Coverage",
-                        format="%.2f%%"
-                    ),
+                    "recommendation": "Recommendation",
+                    "reason": "Reason",
                     "timestamp": st.column_config.DatetimeColumn("Timestamp")
-                }
+                },
+                use_container_width=True
             )
-        else:
-            st.info("No AI confidence data available yet. Start using the AI assistant to generate insights.")
+    
+    # Response Composer Tab
+    with tab2:
+        st.markdown("## 💬 Customer Response Assistant")
+        
+        # Input fields for context
+        original_query = st.text_area("Original Customer Message:", 
+                                      placeholder="Paste the original customer message...")
+        
+        # Context and tone selection
+        context = st.selectbox(
+            "Response Context",
+            ["General Inquiry", "Technical Support", "Billing", "Complaint", "Feedback"]
+        )
+        
+        tone = st.selectbox(
+            "Response Tone",
+            ["Professional", "Empathetic", "Direct", "Apologetic"]
+        )
+        
+        # Draft response button
+        if st.button("Draft Response"):
+            # Simple response generation logic
+            if original_query:
+                # Basic sentiment-aware response generation
+                sentiment = analyze_sentiment(original_query)
+                
+                # Simple response template
+                response_template = f"""
+                Dear Valued Customer,
 
+                Thank you for reaching out regarding your {context.lower()}.
+
+                {'We apologize for any inconvenience' if sentiment < 0 else 'We appreciate your feedback'}. 
+                Our team is committed to providing the best possible support.
+
+                {'We will be addressing your concerns promptly.' if sentiment < 0 else 'We hope this meets your expectations.'}
+
+                Best regards,
+                Customer Support Team
+                """
+                
+                st.markdown("### Suggested Response:")
+                st.write(response_template)
+            else:
+                st.warning("Please enter a customer message to draft a response.")
 # Tab 3: Common Documentation + Interaction Insights
 with tab3:
     st.markdown("### 📊 Knowledge Base & Interactions")
