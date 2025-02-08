@@ -5,102 +5,170 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 from anthropic import Anthropic
 
-# Move page config to the top
-st.set_page_config(page_title="Moxie AI Support Agent", page_icon="🚀", layout="wide")
+# Page Configuration
+st.set_page_config(
+    page_title="Moxie AI Support Agent",
+    page_icon="🚀",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Load API key from Streamlit secrets
+# Custom CSS for better styling
+st.markdown("""
+    <style>
+    /* General Styling */
+    .stApp {
+        background-color: #f8fafc;
+    }
+    
+    /* Button Styling */
+    .stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        padding: 10px 20px;
+        transition: all 0.2s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Input Field Styling */
+    .stTextInput > div > div > input {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 12px 20px;
+    }
+    
+    /* Card Styling */
+    .metric-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+    }
+    
+    /* Tab Styling */
+    .stTabs > div > div > div {
+        gap: 8px;
+        padding: 10px 0;
+    }
+    
+    /* Response Container */
+    .response-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        margin: 20px 0;
+    }
+    
+    /* Example Query Buttons */
+    .example-query {
+        background-color: #f1f5f9;
+        border-radius: 20px;
+        padding: 8px 16px;
+        margin: 4px;
+        display: inline-block;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .example-query:hover {
+        background-color: #e2e8f0;
+    }
+    
+    /* Channel Selection */
+    .channel-select {
+        padding: 10px;
+        border-radius: 8px;
+        margin: 5px 0;
+        cursor: pointer;
+    }
+    .channel-select:hover {
+        background-color: #f1f5f9;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Load API key and initialize Anthropic client (your existing code)
 try:
     api_key = st.secrets["anthropic_api_key"]
-except Exception as e:
-    st.error(f"Error loading API key: {e}")
-    api_key = None
-
-# Initialize Anthropic client
-try:
     client = Anthropic(api_key=api_key)
 except Exception as e:
-    st.error(f"Error initializing Anthropic client: {e}")
+    st.error(f"Error initializing: {e}")
+    api_key = None
     client = None
 
-# Mean Pooling - Take attention mask into account for correct averaging
+# Your existing embedding and model functions
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0]
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
-# Load model and tokenizer
-tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
-model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+@st.cache_resource
+def load_embedding_model():
+    tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+    model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+    return tokenizer, model
 
-# Load internal documentation
+tokenizer, model = load_embedding_model()
+
+# Load and prepare documents (your existing functions)
 @st.cache_data
 def load_docs():
     try:
         return pd.read_csv("internal_docs.csv")
     except FileNotFoundError:
-        st.error("Error: 'internal_docs.csv' not found. Please ensure the file exists.")
+        st.error("Error: 'internal_docs.csv' not found.")
         return pd.DataFrame()
 
-# Embedding and retrieval functions
 def get_embeddings(texts):
     encoded_input = tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
     with torch.no_grad():
         model_output = model(**encoded_input)
     embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
-    embeddings = torch.nn.functional.normalize(embeddings, p=2, dim=1)
-    return embeddings.numpy()
+    return torch.nn.functional.normalize(embeddings, p=2, dim=1).numpy()
 
-# Load and prepare embeddings
 internal_docs_df = load_docs()
-doc_embeddings = get_embeddings(internal_docs_df["question"].tolist())
+doc_embeddings = get_embeddings(internal_docs_df["question"].tolist()) if not internal_docs_df.empty else None
 
-# Retrieve documents
 def retrieve_documents(query, top_k=3):
     query_embedding = get_embeddings([query])
     similarities = np.dot(doc_embeddings, query_embedding.T).flatten()
     top_k_indices = similarities.argsort()[-top_k:][::-1]
     return internal_docs_df.iloc[top_k_indices]
 
-# RAG with Claude 3.5 Sonnet
+# Enhanced RAG with Claude
 def ask_claude_with_rag(query):
     if client is None:
-        st.error("Anthropic client not initialized. Unable to generate response.")
-        return "Error: AI assistant is currently unavailable.", pd.DataFrame()
-
-    try:
-        relevant_docs = retrieve_documents(query)
-        context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
-        
-        full_prompt = f"""
-        You are an AI assistant for Moxie, supporting Provider Success Managers (PSMs) and medical spa providers.
-
-        Context from internal documentation:
-        {context}
-
-        Provide a helpful, professional response to the following query:
-        {query}
-
-        If the query involves sensitive topics like compliance, legal, or requires specialized expertise, indicate it needs escalation.
-        """
-        
-        response = client.messages.create(
-            model="claude-3-sonnet-20240229",  # Updated to Claude 3.5 Sonnet
-            max_tokens=500,
-            messages=[{"role": "user", "content": full_prompt}]
-        )
-        
-        return response.content[0].text, relevant_docs
+        return "Error: AI assistant is unavailable.", pd.DataFrame()
     
-    except Exception as e:
-        st.error(f"Error generating AI response: {e}")
-        return f"Error: Unable to generate response. Details: {str(e)}", relevant_docs
+    try:
+        with st.spinner("🔍 Searching through documentation..."):
+            relevant_docs = retrieve_documents(query)
+            context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
+            
+            prompt = f"""
+            You are an AI assistant for Moxie, supporting Provider Success Managers (PSMs) and medical spa providers.
 
-# Escalation logic
-def determine_escalation(query):
-    compliance_keywords = ["legal", "compliance", "regulation", "privacy", "confidentiality", "lawsuit", "liability"]
-    if any(keyword in query.lower() for keyword in compliance_keywords):
-        return True, "Compliance Review Needed"
-    return False, "Standard Query"
+            Context from internal documentation:
+            {context}
+
+            Provide a helpful, professional response to: {query}
+
+            If the query involves compliance, legal, or specialized expertise, indicate escalation needs.
+            """
+            
+            response = client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=500,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            return response.content[0].text, relevant_docs
+    except Exception as e:
+        return f"Error: {str(e)}", relevant_docs
 
 # Initialize session state
 if 'queries_handled' not in st.session_state:
@@ -109,167 +177,197 @@ if 'queries_escalated' not in st.session_state:
     st.session_state.queries_escalated = 0
 if 'escalations' not in st.session_state:
     st.session_state.escalations = []
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
-# Title and Overview
-st.title("🚀 Moxie AI Support Agent")
-st.markdown("### Empowering Provider Success Managers with AI-powered assistance")
-
-# Create tabs
-tab1, tab2, tab3 = st.tabs(["Support Assistant & External Provider Contact", "Escalation Center", "Insights & Library"])
-
-# Sidebar for Navigation and Metrics
+# Enhanced Sidebar
 with st.sidebar:
-    st.header("🤖 AI Agent Dashboard")
+    st.markdown("""
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <h1 style='color: #0f172a;'>🤖 AI Support</h1>
+        </div>
+    """, unsafe_allow_html=True)
     
     # Performance Metrics
-    st.subheader("📊 Performance Metrics")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Questions Answered", st.session_state.queries_handled)
-    with col2:
-        st.metric("Questions Escalated", st.session_state.queries_escalated)
+    metrics_cols = st.columns(2)
+    with metrics_cols[0]:
+        st.markdown("""
+            <div class='metric-card'>
+                <p style='color: #64748b; margin: 0;'>Queries Handled</p>
+                <h2 style='color: #0284c7; margin: 0;'>{}</h2>
+            </div>
+        """.format(st.session_state.queries_handled), unsafe_allow_html=True)
     
-    # Common Provider Questions Section
-    st.subheader("📚 Common Provider Questions")
-    st.write("Access internal documentation and resources.")
-    if not internal_docs_df.empty:
-        # Display a preview or searchable subset of documents
-        st.dataframe(internal_docs_df.head())
-        # Add a search or filter functionality if needed
-        search_query = st.text_input("Search Documentation", placeholder="Type to search documents...")
+    with metrics_cols[1]:
+        st.markdown("""
+            <div class='metric-card'>
+                <p style='color: #64748b; margin: 0;'>Escalated</p>
+                <h2 style='color: #ea580c; margin: 0;'>{}</h2>
+            </div>
+        """.format(st.session_state.queries_escalated), unsafe_allow_html=True)
+    
+    # Channel Selection
+    st.markdown("### 📱 Communication Channels")
+    channels = {
+        "💬 Chat Support": "chat",
+        "📧 Email": "email",
+        "📱 SMS": "sms",
+        "❓ Help Center": "help"
+    }
+    selected_channel = st.radio("", list(channels.keys()), key="channel_select")
 
-# Tab 1: Support Assistant & External Provider Contact
+# Main Content Area
+st.markdown("""
+    <div style='text-align: center; padding: 20px 0;'>
+        <h1>🚀 Moxie AI Support Agent</h1>
+        <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# Create tabs with enhanced styling
+tab1, tab2, tab3 = st.tabs([
+    "🔍 Support Assistant",
+    "🚨 Escalation Center",
+    "📊 Insights"
+])
+
+# Tab 1: Support Assistant
 with tab1:
-    st.header("🔍 What can we help you with today?")
-
-    # Query Processing Section
-    st.subheader("❓ Ask Your Question")
-    psm_query = st.text_input("Type your question", placeholder="Type your question here...")
-
-    # Example query buttons
-    st.markdown("**Need inspiration? Try these examples:**")
-    example_cols = st.columns(3)
+    # Search Section
+    st.markdown("### How can we help you today?")
+    query_col1, query_col2 = st.columns([4,1])
+    with query_col1:
+        psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    with query_col2:
+        search_button = st.button("🔍 Search", use_container_width=True)
+    
+    # Example Queries
+    st.markdown("##### Quick Access Questions")
     example_queries = [
         "How do I update billing info?",
         "What are the marketing guidelines?",
         "How do I handle patient data?",
-        "How do I reset my password?",
-        "What are the business hours for support?",
-        "How do I access my dashboard?",
-        "How do I update my contact information?",
-        "What are the legal requirements for marketing?",
-        "How do I handle patient complaints?",
-        "What financial reports do I need to submit?"
+        "Reset password",
+        "Business hours",
+        "Access dashboard"
     ]
-    for i in range(0, len(example_queries), 3):
-        cols = st.columns(3)
-        for col, query in zip(cols, example_queries[i:i+3]):
-            if col.button(query):
+    
+    example_cols = st.columns(3)
+    for i, query in enumerate(example_queries):
+        with example_cols[i % 3]:
+            if st.button(f"💡 {query}", key=f"example_{i}"):
                 psm_query = query
 
-    # Query Processing
+    # Process Query and Display Response
     if psm_query:
-        if api_key is None or client is None:
-            st.error("AI assistant is not configured. Please check your API key.")
-        else:
-            # Determine if escalation is needed
-            needs_escalation, escalation_reason = determine_escalation(psm_query)
-            
-            # Generate AI Response
-            response, relevant_docs = ask_claude_with_rag(psm_query)
-            
-            # Update Metrics
-            if needs_escalation:
-                st.session_state.queries_escalated += 1
-                st.session_state.escalations.append({
-                    "query": psm_query,
-                    "reason": escalation_reason,
-                    "status": "Pending"
-                })
-            else:
-                st.session_state.queries_handled += 1
-            
-            # Display Response
-            st.markdown("### 🤖 Here's what I found:")
-            st.info(response)
-            
-            # Escalation Button
-            if needs_escalation:
-                if st.button("🚨 Create Escalation"):
-                    st.session_state.escalations.append({
-                        "query": psm_query,
-                        "reason": escalation_reason,
-                        "status": "Pending"
-                    })
-                    st.success("Escalation created! Navigate to the Escalation Center to manage it.")
-
-    # Communication Channel Selection
-    st.subheader("📞 Select Communication Channel")
-    support_channel = st.radio(
-        "Choose How You'd Like to Communicate",
-        ["Chat Support", "Email Response", "SMS Handling", "Help Center Ticket"],
-        key="support_channel_main"
-    )
-    st.write(f"Selected Channel: **{support_channel}**")
-    
-    # Provider information lookup
-    st.subheader("🔍 Find Provider Information")
-    provider_data = {
-        "Provider 1": {"Email": "provider1@example.com", "Phone": "123-456-7890"},
-        "Provider 2": {"Email": "provider2@example.com", "Phone": "987-654-3210"},
-    }
-    provider_name = st.selectbox("Select Provider", list(provider_data.keys()))
-    if provider_name:
-        st.write(f"**Email:** {provider_data[provider_name]['Email']}")
-        st.write(f"**Phone:** {provider_data[provider_name]['Phone']}")
-
-    # Contact Provider Feature
-    st.subheader("📩 Contact Provider")
-    provider_message = st.text_area("Message to Provider", placeholder="Type your message to the provider...")
-    if st.button(f"Send via {support_channel}"):
-        st.success(f"Message sent to {provider_name} via {support_channel}!")
-        st.write(f"**Provider:** {provider_name}")
-        st.write(f"**Channel:** {support_channel}")
-        st.write(f"**Message:** {provider_message}")
+        response, relevant_docs = ask_claude_with_rag(psm_query)
+        
+        # Display Response
+        st.markdown("""
+            <div class='response-container'>
+                <h4>🤖 AI Assistant Response</h4>
+                <p>{}</p>
+            </div>
+        """.format(response), unsafe_allow_html=True)
+        
+        # Related Documentation
+        with st.expander("📚 Related Documentation"):
+            st.dataframe(
+                relevant_docs[["question", "answer"]],
+                use_container_width=True,
+                column_config={
+                    "question": "Question",
+                    "answer": "Answer"
+                }
+            )
+        
+        # Update metrics
+        st.session_state.queries_handled += 1
+        
+        # Add to chat history
+        st.session_state.chat_history.append({
+            "query": psm_query,
+            "response": response,
+            "channel": channels[selected_channel]
+        })
 
 # Tab 2: Escalation Center
 with tab2:
-    st.header("🚨 Escalation Center")
+    st.markdown("### 🚨 Escalation Management")
     
-    # Create Escalation Manually
-    st.subheader("Create New Escalation")
-    escalation_query = st.text_input("Enter the query to escalate", placeholder="Type the query here...")
-    escalation_reason = st.selectbox("Reason for Escalation", ["Compliance", "Legal", "Finance", "Other"])
-    if st.button("Create Escalation"):
-        st.session_state.escalations.append({
-            "query": escalation_query,
-            "reason": escalation_reason,
-            "status": "Pending"
-        })
-        st.success("Escalation created successfully!")
-
-    # View Existing Escalations
-    st.subheader("Current Escalations")
+    # Create New Escalation
+    with st.expander("Create New Escalation", expanded=True):
+        esc_col1, esc_col2 = st.columns([2,1])
+        with esc_col1:
+            escalation_query = st.text_input("Query to Escalate")
+            escalation_reason = st.selectbox(
+                "Reason",
+                ["Compliance", "Legal", "Technical", "Other"]
+            )
+        with esc_col2:
+            priority = st.select_slider(
+                "Priority",
+                ["Low", "Medium", "High", "Urgent"]
+            )
+            if st.button("🚨 Create Escalation", type="primary"):
+                st.session_state.escalations.append({
+                    "query": escalation_query,
+                    "reason": escalation_reason,
+                    "priority": priority,
+                    "status": "Pending"
+                })
+                st.session_state.queries_escalated += 1
+                st.success("Escalation created!")
+    
+    # View Escalations
     if st.session_state.escalations:
-        for idx, escalation in enumerate(st.session_state.escalations):
-            with st.expander(f"Escalation {idx + 1}: {escalation['query']}"):
-                st.write(f"**Reason:** {escalation['reason']}")
-                st.write(f"**Status:** {escalation['status']}")
+        for idx, esc in enumerate(st.session_state.escalations):
+            with st.container():
+                st.markdown(f"""
+                    <div class='metric-card'>
+                        <h4>{esc['reason']} Escalation - {esc['priority']}</h4>
+                        <p>{esc['query']}</p>
+                        <p style='color: #ea580c;'>Status: {esc['status']}</p>
+                    </div>
+                """, unsafe_allow_html=True)
     else:
-        st.info("No escalations at the moment.")
+        st.info("No active escalations")
 
-# Tab 3: Insights & Library
+# Tab 3: Insights
 with tab3:
-    st.header("📊 Insights & Library")
+    st.markdown("### 📊 Performance Insights")
     
-    # Escalation Dashboard
-    st.subheader("Escalation Dashboard")
+    # Chat History
+    st.subheader("Recent Interactions")
+    if st.session_state.chat_history:
+        for chat in st.session_state.chat_history[-5:]:  # Show last 5 interactions
+            st.markdown(f"""
+                <div class='metric-card'>
+                    <p><strong>Channel:</strong> {chat['channel']}</p>
+                    <p><strong>Query:</strong> {chat['query']}</p>
+                    <p><strong>Response:</strong> {chat['response'][:200]}...</p>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    # Escalation Metrics
     if st.session_state.escalations:
+        st.subheader("Escalation Analytics")
         escalation_df = pd.DataFrame(st.session_state.escalations)
-        st.dataframe(escalation_df)
-    else:
-        st.info("No escalations to display.")
+        st.dataframe(
+            escalation_df,
+            use_container_width=True,
+            column_config={
+                "query": "Query",
+                "reason": "Reason",
+                "priority": "Priority",
+                "status": "Status"
+            }
+        )
 
 # Footer
 st.markdown("---")
-st.markdown("Built with ❤️ using **Claude 3.5 Sonnet**, **Streamlit**, and **RAG**")
+st.markdown("""
+    <div style='text-align: center; padding: 20px 0; color: #64748b;'>
+        Built with ❤️ using Claude 3.5 Sonnet, Streamlit, and RAG
+    </div>
+""", unsafe_allow_html=True)
