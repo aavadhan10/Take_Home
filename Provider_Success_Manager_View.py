@@ -4,6 +4,7 @@ import numpy as np
 from transformers import AutoTokenizer, AutoModel
 import torch
 from anthropic import Anthropic
+import json
 
 # Page Configuration
 st.set_page_config(
@@ -13,8 +14,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
-st.markdown("""
+# Custom CSS for styling
+st.markdown(
+    """
     <style>
     /* General Styling */
     .stApp {
@@ -94,7 +96,9 @@ st.markdown("""
         padding: 1rem;
     }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # Load API key and initialize Anthropic client
 try:
@@ -144,6 +148,134 @@ def retrieve_documents(query, top_k=3):
     top_k_indices = similarities.argsort()[-top_k:][::-1]
     return internal_docs_df.iloc[top_k_indices]
 
+def analyze_potential_escalation(query_text):
+    """
+    Analyzes potential escalation risk based on query text.
+    Returns a dictionary containing risk assessment and recommendations.
+    """
+    # Initialize risk scores
+    keyword_risk_score = 0
+    claude_risk_score = 0
+    
+    # High-risk keywords and their weights
+    risk_keywords = {
+        'urgent': 10,
+        'immediate': 10,
+        'lawsuit': 20,
+        'legal': 15,
+        'compliance': 15,
+        'hipaa': 15,
+        'violation': 15,
+        'breach': 20,
+        'emergency': 20,
+        'critical': 15,
+        'error': 10,
+        'failed': 10,
+        'wrong': 10,
+        'complaint': 15,
+        'dissatisfied': 10,
+        'angry': 10,
+        'dispute': 15,
+        'refund': 10,
+        'bug': 10,
+        'broken': 10,
+        'patient data': 15,
+        'security': 15,
+        'privacy': 15
+    }
+    
+    # Calculate keyword-based risk score
+    query_lower = query_text.lower()
+    for keyword, weight in risk_keywords.items():
+        if keyword in query_lower:
+            keyword_risk_score += weight
+    
+    # Normalize keyword risk score to 0-100
+    keyword_risk_score = min(100, keyword_risk_score)
+    
+    # Get Claude's analysis of the situation
+    try:
+        response = client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=300,
+            messages=[{
+                "role": "user", 
+                "content": f"""
+                Analyze this support query for risk level and urgency. Consider legal, compliance, 
+                technical, and customer satisfaction factors. Rate the overall risk from 0-100 and 
+                provide key concerns and sentiment:
+                
+                Query: {query_text}
+                
+                Format your response as JSON with these fields:
+                - risk_score (number 0-100)
+                - sentiment (string)
+                - key_concerns (list of strings)
+                - risk_categories (object with category names and scores 0-100)
+                """
+            }]
+        )
+        
+        claude_analysis = json.loads(response.content[0].text)
+        claude_risk_score = claude_analysis.get('risk_score', 0)
+        
+    except Exception as e:
+        print(f"Error getting Claude analysis: {e}")
+        claude_analysis = {
+            "risk_score": 0,
+            "sentiment": "Unknown",
+            "key_concerns": ["Unable to analyze with AI"],
+            "risk_categories": {}
+        }
+    
+    # Calculate combined risk score
+    combined_risk_score = (keyword_risk_score * 0.4) + (claude_risk_score * 0.6)
+    
+    # Determine risk level and color
+    if combined_risk_score >= 70:
+        risk_level = "High"
+        risk_color = "#ef4444"  # Red
+    elif combined_risk_score >= 40:
+        risk_level = "Medium"
+        risk_color = "#f59e0b"  # Orange
+    else:
+        risk_level = "Low"
+        risk_color = "#10b981"  # Green
+    
+    # Generate recommended actions based on risk level
+    recommended_actions = [
+        f"Document the incident with current risk level: {risk_level}",
+        f"Follow up within {24 if risk_level == 'Low' else 12 if risk_level == 'Medium' else 4} hours"
+    ]
+    
+    if risk_level == "High":
+        recommended_actions.extend([
+            "Immediately escalate to senior management",
+            "Create incident report for compliance team",
+            "Schedule emergency response meeting"
+        ])
+    elif risk_level == "Medium":
+        recommended_actions.extend([
+            "Flag for supervisor review",
+            "Prepare detailed case summary",
+            "Monitor for escalation triggers"
+        ])
+    
+    # Return comprehensive analysis
+    return {
+        "risk_level": risk_level,
+        "risk_color": risk_color,
+        "risk_score": round(combined_risk_score),
+        "keyword_risk_score": round(keyword_risk_score),
+        "claude_risk_score": round(claude_risk_score),
+        "detailed_assessment": {
+            "Sentiment": claude_analysis["sentiment"],
+            "Key Concerns": claude_analysis["key_concerns"],
+            "risk_breakdown": claude_analysis.get("risk_categories", {})
+        },
+        "recommended_actions": recommended_actions
+    }
+
 # Enhanced RAG with Claude
 def ask_claude_with_rag(query):
     if client is None:
@@ -173,7 +305,7 @@ def ask_claude_with_rag(query):
             
             return response.content[0].text, relevant_docs
     except Exception as e:
-        return f"Error: {str(e)}", relevant_docs
+        return f"Error: {str(e)}", pd.DataFrame()
 
 # Initialize session state
 if 'queries_handled' not in st.session_state:
@@ -187,124 +319,18 @@ if 'chat_history' not in st.session_state:
 if 'message_history' not in st.session_state:
     st.session_state.message_history = []
 
-# Enhanced Sidebar
-with st.sidebar:
-    st.markdown("""
-        <div style='text-align: center; margin-bottom: 20px;'>
-            <h1 style='color: #0f172a;'>🤖 Contact Provider</h1>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Performance Metrics
-    metrics_cols = st.columns(2)
-    with metrics_cols[0]:
-        st.markdown("""
-            <div class='metric-card'>
-                <p style='color: #64748b; margin: 0;'>Questions Answered</p>
-                <h2 style='color: #0284c7; margin: 0;'>{}</h2>
-            </div>
-        """.format(st.session_state.queries_handled), unsafe_allow_html=True)
-    
-    with metrics_cols[1]:
-        st.markdown("""
-            <div class='metric-card'>
-                <p style='color: #64748b; margin: 0;'>Escalated</p>
-                <h2 style='color: #ea580c; margin: 0;'>{}</h2>
-            </div>
-        """.format(st.session_state.queries_escalated), unsafe_allow_html=True)
-    
-    # Provider Contact Section
-    st.markdown("### 📱 Contact Provider")
-    
-    # Provider Selection
-    provider_data = {
-        "Provider 1: Jesse Lau": {"email": "provider1@moxie.com", "phone": "123-456-7890", "preferred": "email"},
-        "Provider 2: Dan Friedman": {"email": "provider2@moxie.com", "phone": "987-654-3210", "preferred": "sms"},
-        "Provider 3: Kamau Massey": {"email": "provider3@moxie.com", "phone": "555-123-4567", "preferred": "chat"}
-    }
-    
-    selected_provider = st.selectbox("Select Provider", list(provider_data.keys()))
-    
-    if selected_provider:
-        # Provider Info Card
-        st.markdown("""
-            <div class='metric-card'>
-                <p><strong>📧 Email:</strong> {}</p>
-                <p><strong>📱 Phone:</strong> {}</p>
-                <p><strong>⭐ Preferred Channel:</strong> {}</p>
-            </div>
-        """.format(
-            provider_data[selected_provider]["email"],
-            provider_data[selected_provider]["phone"],
-            provider_data[selected_provider]["preferred"].upper()
-        ), unsafe_allow_html=True)
-
-        st.markdown("### 📤 Send Message")
-        
-        # Communication Channel Selection
-        selected_channel = st.radio(
-            "Select Communication Channel:",
-            ["💬 Chat Support", "📧 Email", "📱 SMS", "❓ Help Center"],
-            key="channel_select"
-        )
-
-        # Message Composition
-        message = st.text_area("Message:", placeholder="Type your message here...", height=100)
-        
-        # Channel-specific Options
-        if selected_channel == "💬 Chat Support":
-            priority = st.select_slider(
-                "Chat Priority",
-                options=["Low", "Medium", "High", "Urgent"]
-            )
-            if st.button("Start Chat Session", type="primary"):
-                st.success(f"Opening chat session with {selected_provider}...")
-                
-        elif selected_channel == "📧 Email":
-            subject = st.text_input("Subject:", placeholder="Enter email subject")
-            cc_recipients = st.text_input("CC:", placeholder="Add CC recipients")
-            if st.button("Send Email", type="primary"):
-                st.success(f"Email sent to {provider_data[selected_provider]['email']}")
-                
-        elif selected_channel == "📱 SMS":
-            urgency = st.select_slider(
-                "Message Urgency",
-                options=["Normal", "Important", "Urgent"]
-            )
-            if st.button("Send SMS", type="primary"):
-                st.success(f"SMS sent to {provider_data[selected_provider]['phone']}")
-                
-        elif selected_channel == "❓ Help Center":
-            ticket_priority = st.select_slider(
-                "Ticket Priority",
-                options=["Low", "Medium", "High", "Urgent"]
-            )
-            category = st.selectbox(
-                "Ticket Category",
-                ["Technical Issue", "Billing Question", "Compliance", "Other"]
-            )
-            if st.button("Create Help Center Ticket", type="primary"):
-                st.success(f"Help Center ticket created for {selected_provider}")
-
-        # Send Message Button
-        if message and st.button("Send Message", type="primary", key="send_message"):
-            st.session_state.message_history.append({
-                "provider": selected_provider,
-                "channel": selected_channel,
-                "message": message,
-                "timestamp": pd.Timestamp.now()
-            })
-            st.success(f"Message sent to {selected_provider} via {selected_channel}")
-
-# Main Content Area
-st.markdown("""
+# Main page layout
+st.markdown(
+    """
     <div style='text-align: center; padding: 20px 0;'>
         <h1>🚀 Moxie AI Support Agent Demo</h1>
-        <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance (Powered by Claude 3.5 Sonnet & RAG Technology) </p>
+        <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
     </div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-# Create tabs with enhanced styling
+# Create tabs
 tab1, tab2, tab3 = st.tabs([
     "🔍 AI Support Question Assistant",
     "🚨 Escalation Center & Response Performance Tracker",
@@ -317,9 +343,9 @@ with tab1:
     st.info("Answering common provider questions from internal documentation.")
     
     # Search Section
-    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    psm_query = st.text_input("", placeholder="Type your question here...")
     
-    # Center the button with reduced width
+    # Center the button
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
         search_button = st.button("🔍 Search", type="primary")
@@ -338,20 +364,22 @@ with tab1:
     example_cols = st.columns(3)
     for i, query in enumerate(example_queries):
         with example_cols[i % 3]:
-            if st.button(f"💡 {query}", key=f"example_{i}"):
+            if st.button(f"💡 {query}"):
                 psm_query = query
-
-    # Process Query and Display Response
+                
+    # Process and display response
     if psm_query:
         response, relevant_docs = ask_claude_with_rag(psm_query)
         
-        # Display Response
-        st.markdown("""
+        st.markdown(
+            f"""
             <div class='response-container'>
                 <h4>🤖 AI Assistant Response</h4>
-                <p>{}</p>
+                <p>{response}</p>
             </div>
-        """.format(response), unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
         
         # Related Documentation
         with st.expander("📚 Relevant Internal Documentation"):
@@ -366,13 +394,18 @@ with tab1:
         
         # Update metrics
         st.session_state.queries_handled += 1
+        st.metric(
+            label="Queries Handled",
+            value=st.session_state.queries_handled,
+            delta=1
+        )
         
         # Add to chat history
         st.session_state.chat_history.append({
             "query": psm_query,
-            "response": response,
-            "channel": selected_channel
+            "response": response
         })
+
 # Tab 2: Escalation Analysis Section
 with tab2:
     st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
@@ -387,87 +420,69 @@ with tab2:
         
         if st.button("🔍 Analyze Escalation Potential", type="primary"):
             if escalation_query:
-                # Hardcoded risk analysis
-                risk_levels = {
-                    "Low Risk": {
-                        "color": "#10b981",
-                        "icon": "✅",
-                        "description": "Will respond autonomously. No immediate escalation needed"
-                    },
-                    "Medium Risk": {
-                        "color": "#f59e0b", 
-                        "icon": "⚠️",
-                        "description": "Review recommended. Manual escalation needed"
-                    },
-                    "High Risk": {
-                        "color": "#ef4444", 
-                        "icon": "🚨",
-                        "description": "Immediate action required"
-                    }
-                }
+                analysis = analyze_potential_escalation(escalation_query)
                 
-                # Risk determination logic
-                keywords = {
-                    "High Risk": ["legal", "hipaa", "violation", "patient safety", "lawsuit"],
-                    "Medium Risk": ["concern", "potential issue", "review needed"]
-                }
-                
-                # Determine risk level
-                risk_level = "Low Risk"
-                for level, words in keywords.items():
-                    if any(word in escalation_query.lower() for word in words):
-                        risk_level = level
-                        break
-                
-                # Display risk assessment
-                current_risk = risk_levels[risk_level]
+                # Display overall risk assessment
                 risk_html = f"""
                 <div style='
-                    background-color: {current_risk["color"]}; 
+                    background-color: {analysis["risk_color"]}; 
                     color: white; 
                     padding: 15px; 
                     border-radius: 10px;
                 '>
                     <div style='display: flex; justify-content: space-between; align-items: center;'>
                         <div>
-                            <h3 style='margin: 0;'>Risk Level: {risk_level}</h3>
-                            <p style='margin: 5px 0 0;'>{current_risk["description"]}</p>
+                            <h3 style='margin: 0;'>Risk Level: {analysis["risk_level"]}</h3>
+                            <p style='margin: 5px 0 0;'>Risk Score: {analysis["risk_score"]}/100</p>
                         </div>
                         <div style='font-size: 2em;'>
-                            {current_risk["icon"]}
+                            {'🚨' if analysis["risk_level"] == "High" else '⚠️' if analysis["risk_level"] == "Medium" else '✅'}
                         </div>
                     </div>
                 </div>
                 """
                 st.markdown(risk_html, unsafe_allow_html=True)
                 
-                # Add AI Analysis Section
-                st.subheader("🤖 AI Analysis Details")
-                analysis_cols = st.columns(2)
+                # Display risk score breakdown
+                st.subheader("Risk Score Analysis")
+                score_cols = st.columns(3)
+                with score_cols[0]:
+                    st.metric(
+                        label="Combined Risk Score",
+                        value=analysis['risk_score'],
+                        help="Overall risk assessment score"
+                    )
+                with score_cols[1]:
+                    st.metric(
+                        label="Keyword Risk Score",
+                        value=analysis['keyword_risk_score'],
+                        help="Risk score based on keyword analysis"
+                    )
+                with score_cols[2]:
+                    st.metric(
+                        label="Claude Risk Score",
+                        value=analysis['claude_risk_score'],
+                        help="Risk score from Claude's analysis"
+                    )
                 
-                with analysis_cols[0]:
-                    st.markdown("""
-                        <div class='metric-card'>
-                            <h4>Key Risk Factors</h4>
-                            <ul>
-                                <li>Customer Sentiment</li>
-                                <li>Technical Complexity</li>
-                                <li>Compliance Requirements</li>
-                            </ul>
-                        </div>
-                    """, unsafe_allow_html=True)
+                # Display risk breakdown
+                st.subheader("Risk Category Breakdown")
+                if "risk_breakdown" in analysis["detailed_assessment"]:
+                    for i, (category, score) in enumerate(analysis["detailed_assessment"]["risk_breakdown"].items()):
+                        if score > 0:
+                            st.progress(score/100, text=f"{category}: {score}/100")
                 
-                with analysis_cols[1]:
-                    st.markdown("""
-                        <div class='metric-card'>
-                            <h4>Recommended Actions</h4>
-                            <ul>
-                                <li>Document the incident</li>
-                                <li>Engage appropriate teams</li>
-                                <li>Schedule follow-up</li>
-                            </ul>
-                        </div>
-                    """, unsafe_allow_html=True)
+                # Display sentiment and concerns
+                st.subheader("Detailed Assessment")
+                st.write(f"**Sentiment:** {analysis['detailed_assessment']['Sentiment']}")
+                st.write("**Key Concerns:**")
+                for concern in analysis["detailed_assessment"]["Key Concerns"]:
+                    st.write(f"- {concern}")
+                
+                # Display recommended actions
+                st.subheader("Recommended Actions")
+                for action in analysis["recommended_actions"]:
+                    st.write(f"- {action}")
             else:
                 st.warning("Please enter details for escalation analysis")
     
@@ -480,22 +495,22 @@ with tab2:
     with metric_cols[0]:
         st.metric(
             label="Total Interactions",
-            value="247",
+            value=247,
             delta=None
         )
-    
     with metric_cols[1]:
         st.metric(
             label="Successful Resolutions",
-            value="221 (89.5%)",
-            delta=None
+            value=89.5,
+            delta=None,
+            help="Percentage of successfully resolved queries"
         )
-    
     with metric_cols[2]:
         st.metric(
-            label="Avg Response Time",
-            value="12 sec",
-            delta=None
+            label="Average Response Time",
+            value=12,
+            delta=None,
+            help="Average response time in seconds"
         )
     
     # Interaction History
@@ -507,44 +522,46 @@ with tab2:
             "type": "Billing Query",
             "query": "How to update patient billing?",
             "status": "Resolved",
-            "accuracy": "95%"
+            "accuracy": 95
         },
         {
             "timestamp": "2024-02-05 11:45",
             "type": "Compliance Issue",
             "query": "HIPAA data transfer concern",
             "status": "Escalated",
-            "accuracy": "100%"
+            "accuracy": 100
         }
     ]
     
-    for interaction in interactions:
+    for i, interaction in enumerate(interactions):
         status_color = "#10b981" if interaction["status"] == "Resolved" else "#ef4444"
-        interaction_html = f"""
-        <div style='
-            background-color: #f8fafc; 
-            border: 1px solid #e2e8f0; 
-            border-radius: 8px; 
-            padding: 15px; 
-            margin-bottom: 10px;
-        '>
-            <div style='display: flex; justify-content: space-between;'>
-                <span>{interaction['timestamp']}</span>
-                <span style='
-                    background-color: {status_color};
-                    color: white;
-                    padding: 3px 8px;
-                    border-radius: 4px;
-                '>
-                    {interaction['status']}
-                </span>
+        st.markdown(
+            f"""
+            <div style='
+                background-color: #f8fafc; 
+                border: 1px solid #e2e8f0; 
+                border-radius: 8px; 
+                padding: 15px; 
+                margin-bottom: 10px;
+            '>
+                <div style='display: flex; justify-content: space-between;'>
+                    <span>{interaction['timestamp']}</span>
+                    <span style='
+                        background-color: {status_color};
+                        color: white;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                    '>
+                        {interaction['status']}
+                    </span>
+                </div>
+                <p><strong>Type:</strong> {interaction['type']}</p>
+                <p><strong>Query:</strong> {interaction['query']}</p>
+                <p><strong>Accuracy:</strong> {interaction['accuracy']}%</p>
             </div>
-            <p><strong>Type:</strong> {interaction['type']}</p>
-            <p><strong>Query:</strong> {interaction['query']}</p>
-            <p>Accuracy: {interaction['accuracy']}</p>
-        </div>
-        """
-        st.markdown(interaction_html, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
 
 # Tab 3: Knowledge Base & Interactions
 with tab3:
@@ -553,7 +570,7 @@ with tab3:
     # Relevant Documents Section
     st.subheader("📚 Internal Documentation")
     if not internal_docs_df.empty:
-        doc_search = st.text_input("Search documentation...", key="doc_search")
+        doc_search = st.text_input("Search documentation...")
         if doc_search:
             filtered_docs = internal_docs_df[
                 internal_docs_df["question"].str.contains(doc_search, case=False) |
@@ -574,30 +591,53 @@ with tab3:
     # Recent Message History
     if st.session_state.message_history:
         st.subheader("Recent Messages")
-        for msg in reversed(st.session_state.message_history[-5:]):
-            st.markdown(f"""
+        for i, msg in enumerate(reversed(st.session_state.message_history[-5:])):
+            st.markdown(
+                f"""
                 <div class='metric-card'>
                     <p><strong>To:</strong> {msg['provider']}</p>
                     <p><strong>Channel:</strong> {msg['channel']}</p>
                     <p><strong>Message:</strong> {msg['message']}</p>
                     <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
                 </div>
-            """, unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True
+            )
     
     # Chat History
     st.subheader("Recent AI Interactions")
     if st.session_state.chat_history:
-        for chat in st.session_state.chat_history[-5:]:
-            st.markdown(f"""
+        for i, chat in enumerate(st.session_state.chat_history[-5:]):
+            st.markdown(
+                f"""
                 <div class='metric-card'>
                     <p><strong>Question:</strong> {chat['query']}</p>
                     <p><strong>Response:</strong> {chat['response'][:200]}...</p>
                 </div>
-            """, unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True
+            )
     
     # Escalation Analytics
     if st.session_state.escalations:
         st.subheader("Escalation Analytics")
+        metric_cols = st.columns(3)
+        with metric_cols[0]:
+            st.metric(
+                label="Total Escalations",
+                value=len(st.session_state.escalations)
+            )
+        with metric_cols[1]:
+            st.metric(
+                label="Active Cases",
+                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Active")
+            )
+        with metric_cols[2]:
+            st.metric(
+                label="Resolved Cases",
+                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Resolved")
+            )
+        
         escalation_df = pd.DataFrame(st.session_state.escalations)
         st.dataframe(
             escalation_df,
@@ -612,8 +652,10 @@ with tab3:
 
 # Footer
 st.markdown("---")
-st.markdown("""
+st.markdown(
+    """
     <div style='text-align: center; padding: 20px 0; color: #64748b;'>
         Built by Ankita Avadhani using Claude 3.5 Sonnet, Streamlit, and RAG
     </div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True)
