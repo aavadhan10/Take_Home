@@ -141,7 +141,7 @@ st.markdown("""
         color: #38bdf8 !important;
     }
     .dark-mode .metric-card p {
-        color: #94a3b8 !important; 
+        color: #94a3b8 !important;
     }
 # Load API key and initialize Anthropic client
 try:
