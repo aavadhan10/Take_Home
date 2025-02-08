@@ -284,7 +284,7 @@ with st.sidebar:
 # Main Content Area
 st.markdown("""
     <div style='text-align: center; padding: 20px 0;'>
-        <h1>🚀 Moxie AI Support Agent</h1>
+        <h1>🚀 Moxie AI Support Agent Demo</h1>
         <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance (Powered by Claude 3.5 Sonnet & RAG Technology) </p>
     </div>
 """, unsafe_allow_html=True)
