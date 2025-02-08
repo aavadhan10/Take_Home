@@ -148,6 +148,134 @@ def retrieve_documents(query, top_k=3):
     top_k_indices = similarities.argsort()[-top_k:][::-1]
     return internal_docs_df.iloc[top_k_indices]
 
+def analyze_potential_escalation(query_text):
+    """
+    Analyzes potential escalation risk based on query text.
+    Returns a dictionary containing risk assessment and recommendations.
+    """
+    # Initialize risk scores
+    keyword_risk_score = 0
+    claude_risk_score = 0
+    
+    # High-risk keywords and their weights
+    risk_keywords = {
+        'urgent': 10,
+        'immediate': 10,
+        'lawsuit': 20,
+        'legal': 15,
+        'compliance': 15,
+        'hipaa': 15,
+        'violation': 15,
+        'breach': 20,
+        'emergency': 20,
+        'critical': 15,
+        'error': 10,
+        'failed': 10,
+        'wrong': 10,
+        'complaint': 15,
+        'dissatisfied': 10,
+        'angry': 10,
+        'dispute': 15,
+        'refund': 10,
+        'bug': 10,
+        'broken': 10,
+        'patient data': 15,
+        'security': 15,
+        'privacy': 15
+    }
+    
+    # Calculate keyword-based risk score
+    query_lower = query_text.lower()
+    for keyword, weight in risk_keywords.items():
+        if keyword in query_lower:
+            keyword_risk_score += weight
+    
+    # Normalize keyword risk score to 0-100
+    keyword_risk_score = min(100, keyword_risk_score)
+    
+    # Get Claude's analysis of the situation
+    try:
+        response = client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=300,
+            messages=[{
+                "role": "user", 
+                "content": f"""
+                Analyze this support query for risk level and urgency. Consider legal, compliance, 
+                technical, and customer satisfaction factors. Rate the overall risk from 0-100 and 
+                provide key concerns and sentiment:
+                
+                Query: {query_text}
+                
+                Format your response as JSON with these fields:
+                - risk_score (number 0-100)
+                - sentiment (string)
+                - key_concerns (list of strings)
+                - risk_categories (object with category names and scores 0-100)
+                """
+            }]
+        )
+        
+        claude_analysis = json.loads(response.content[0].text)
+        claude_risk_score = claude_analysis.get('risk_score', 0)
+        
+    except Exception as e:
+        print(f"Error getting Claude analysis: {e}")
+        claude_analysis = {
+            "risk_score": 0,
+            "sentiment": "Unknown",
+            "key_concerns": ["Unable to analyze with AI"],
+            "risk_categories": {}
+        }
+    
+    # Calculate combined risk score
+    combined_risk_score = (keyword_risk_score * 0.4) + (claude_risk_score * 0.6)
+    
+    # Determine risk level and color
+    if combined_risk_score >= 70:
+        risk_level = "High"
+        risk_color = "#ef4444"  # Red
+    elif combined_risk_score >= 40:
+        risk_level = "Medium"
+        risk_color = "#f59e0b"  # Orange
+    else:
+        risk_level = "Low"
+        risk_color = "#10b981"  # Green
+    
+    # Generate recommended actions based on risk level
+    recommended_actions = [
+        f"Document the incident with current risk level: {risk_level}",
+        f"Follow up within {24 if risk_level == 'Low' else 12 if risk_level == 'Medium' else 4} hours"
+    ]
+    
+    if risk_level == "High":
+        recommended_actions.extend([
+            "Immediately escalate to senior management",
+            "Create incident report for compliance team",
+            "Schedule emergency response meeting"
+        ])
+    elif risk_level == "Medium":
+        recommended_actions.extend([
+            "Flag for supervisor review",
+            "Prepare detailed case summary",
+            "Monitor for escalation triggers"
+        ])
+    
+    # Return comprehensive analysis
+    return {
+        "risk_level": risk_level,
+        "risk_color": risk_color,
+        "risk_score": round(combined_risk_score),
+        "keyword_risk_score": round(keyword_risk_score),
+        "claude_risk_score": round(claude_risk_score),
+        "detailed_assessment": {
+            "Sentiment": claude_analysis["sentiment"],
+            "Key Concerns": claude_analysis["key_concerns"],
+            "risk_breakdown": claude_analysis.get("risk_categories", {})
+        },
+        "recommended_actions": recommended_actions
+    }
+
 # Enhanced RAG with Claude
 def ask_claude_with_rag(query):
     if client is None:
@@ -177,7 +305,7 @@ def ask_claude_with_rag(query):
             
             return response.content[0].text, relevant_docs
     except Exception as e:
-        return f"Error: {str(e)}", relevant_docs
+        return f"Error: {str(e)}", pd.DataFrame()
 
 # Initialize session state
 if 'queries_handled' not in st.session_state:
@@ -208,6 +336,7 @@ tab1, tab2, tab3 = st.tabs([
     "🚨 Escalation Center & Response Performance Tracker",
     "📊 Internal Documentation Search"
 ])
+
 # Tab 1: AI Support Question Assistant
 with tab1:
     st.markdown("### Type in your questions below")
@@ -277,7 +406,6 @@ with tab1:
             "query": psm_query,
             "response": response
         })
-
 # Tab 2: Escalation Analysis Section
 with tab2:
     st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
@@ -385,7 +513,7 @@ with tab2:
         )
     with metric_cols[2]:
         st.metric(
-            label="Avg Response Time",
+            label="Average Response Time",
             value=12,
             delta=None,
             help="Average response time in seconds",
@@ -544,5 +672,4 @@ st.markdown(
         Built by Ankita Avadhani using Claude 3.5 Sonnet, Streamlit, and RAG
     </div>
     """,
-    unsafe_allow_html=True
-)
+    unsafe_allow_html=True)
