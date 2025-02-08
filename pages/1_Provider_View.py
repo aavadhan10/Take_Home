@@ -61,7 +61,8 @@ def initialize_session_state():
     default_states = {
         'messages': [],
         'chat_input': '',
-        'success_manager_mode': False
+        'success_manager_mode': False,
+        'connection_mode': None
     }
     for key, value in default_states.items():
         if key not in st.session_state:
@@ -102,6 +103,43 @@ for message in st.session_state.messages:
         </div>
     """, unsafe_allow_html=True)
 
+# Success Manager Connection Options
+if st.session_state.success_manager_mode and st.session_state.connection_mode is None:
+    st.markdown("### Choose Your Connection Method")
+    connection_cols = st.columns(4)
+    
+    with connection_cols[0]:
+        if st.button("💬 Chat Support", use_container_width=True):
+            st.session_state.connection_mode = "Chat Support"
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "Chat Support selected. A representative will be with you shortly."
+            })
+    
+    with connection_cols[1]:
+        if st.button("📧 Email", use_container_width=True):
+            st.session_state.connection_mode = "Email"
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "Email support selected. Please provide your email address and inquiry details."
+            })
+    
+    with connection_cols[2]:
+        if st.button("📱 SMS", use_container_width=True):
+            st.session_state.connection_mode = "SMS"
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "SMS support selected. Please provide your phone number."
+            })
+    
+    with connection_cols[3]:
+        if st.button("❓ Help Center", use_container_width=True):
+            st.session_state.connection_mode = "Help Center"
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "Help Center resources are being loaded. You'll be redirected shortly."
+            })
+
 # Chat input and buttons
 st.markdown("<div style='max-width: 800px; margin: 1rem auto;'>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns([5,1,1])
@@ -131,8 +169,8 @@ if ask_clicked and chat_input.strip():
         "content": chat_input
     })
     
-    # Hardcoded result
-    response = "Here is a result based on your query. This is a sample response generated to demonstrate the functionality of the support system."
+    # Hardcoded result for searching documentation
+    response = "Searching through relevant documentation for your query. Please wait a moment..."
     
     # Add assistant response
     st.session_state.messages.append({
@@ -146,14 +184,12 @@ if ask_clicked and chat_input.strip():
 if success_manager_clicked:
     # Set success manager mode
     st.session_state.success_manager_mode = True
+    st.session_state.connection_mode = None
     
     # Show informative message
-    st.info("A Moxie Provider Success Manager will be available to assist you shortly. Please describe your inquiry in detail.")
-    
-    # Add message to chat log
     st.session_state.messages.append({
         "role": "assistant",
-        "content": "A Moxie Provider Success Manager will be available to assist you shortly. Please describe your inquiry in detail."
+        "content": "Please choose your preferred method of connecting with a Moxie Provider Success Manager."
     })
 
 st.markdown("</div>", unsafe_allow_html=True)
@@ -185,3 +221,6 @@ st.markdown("""
         Moxie Provider Support Portal
     </div>
 """, unsafe_allow_html=True)
+
+# Rerun to update the page state
+st.experimental_rerun()
