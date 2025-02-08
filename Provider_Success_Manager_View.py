@@ -191,7 +191,7 @@ if 'chat_history' not in st.session_state:
 if 'message_history' not in st.session_state:
     st.session_state.message_history = []
 
-# Main page title and description
+# Main page layout
 st.markdown(
     """
     <div style='text-align: center; padding: 20px 0;'>
@@ -208,7 +208,6 @@ tab1, tab2, tab3 = st.tabs([
     "🚨 Escalation Center & Response Performance Tracker",
     "📊 Internal Documentation Search"
 ])
-
 # Tab 1: AI Support Question Assistant
 with tab1:
     st.markdown("### Type in your questions below")
@@ -266,6 +265,12 @@ with tab1:
         
         # Update metrics
         st.session_state.queries_handled += 1
+        st.metric(
+            label="Queries Handled",
+            value=st.session_state.queries_handled,
+            delta=1,
+            key="queries_handled_metric_tab1"
+        )
         
         # Add to chat history
         st.session_state.chat_history.append({
@@ -315,30 +320,45 @@ with tab2:
                 st.subheader("Risk Score Analysis")
                 score_cols = st.columns(3)
                 with score_cols[0]:
-                    st.metric("Combined Risk Score", f"{analysis['risk_score']}/100", key="combined_score")
+                    st.metric(
+                        label="Combined Risk Score",
+                        value=analysis['risk_score'],
+                        help="Overall risk assessment score",
+                        key="combined_score_tab2"
+                    )
                 with score_cols[1]:
-                    st.metric("Keyword Risk Score", f"{analysis['keyword_risk_score']}/100", key="keyword_score")
+                    st.metric(
+                        label="Keyword Risk Score",
+                        value=analysis['keyword_risk_score'],
+                        help="Risk score based on keyword analysis",
+                        key="keyword_score_tab2"
+                    )
                 with score_cols[2]:
-                    st.metric("Claude Risk Score", f"{analysis['claude_risk_score']}/100", key="claude_score")
+                    st.metric(
+                        label="Claude Risk Score",
+                        value=analysis['claude_risk_score'],
+                        help="Risk score from Claude's analysis",
+                        key="claude_score_tab2"
+                    )
                 
                 # Display risk breakdown
                 st.subheader("Risk Category Breakdown")
                 if "risk_breakdown" in analysis["detailed_assessment"]:
                     for i, (category, score) in enumerate(analysis["detailed_assessment"]["risk_breakdown"].items()):
                         if score > 0:
-                            st.progress(score/100, text=f"{category}: {score}/100", key=f"progress_{i}")
+                            st.progress(score/100, text=f"{category}: {score}/100", key=f"progress_{i}_tab2")
                 
                 # Display sentiment and concerns
                 st.subheader("Detailed Assessment")
                 st.write(f"**Sentiment:** {analysis['detailed_assessment']['Sentiment']}")
                 st.write("**Key Concerns:**")
-                for i, concern in enumerate(analysis["detailed_assessment"]["Key Concerns"]):
-                    st.write(f"- {concern}", key=f"concern_{i}")
+                for concern in analysis["detailed_assessment"]["Key Concerns"]:
+                    st.write(f"- {concern}")
                 
                 # Display recommended actions
                 st.subheader("Recommended Actions")
-                for i, action in enumerate(analysis["recommended_actions"]):
-                    st.write(f"- {action}", key=f"action_{i}")
+                for action in analysis["recommended_actions"]:
+                    st.write(f"- {action}")
             else:
                 st.warning("Please enter details for escalation analysis")
     
@@ -346,14 +366,31 @@ with tab2:
     st.markdown("### 📊 Response Performance & Tracker")
     
     # Metrics columns
-    col1, col2, col3 = st.columns(3)
+    metric_cols = st.columns(3)
     
-    with col1:
-        st.metric("Total Interactions", "247", key="total_interactions")
-    with col2:
-        st.metric("Successful Resolutions", "221 (89.5%)", key="successful_resolutions")
-    with col3:
-        st.metric("Avg Response Time", "12 sec", key="avg_response_time")
+    with metric_cols[0]:
+        st.metric(
+            label="Total Interactions",
+            value=247,
+            delta=None,
+            key="total_interactions_tab2"
+        )
+    with metric_cols[1]:
+        st.metric(
+            label="Successful Resolutions",
+            value=89.5,
+            delta=None,
+            help="Percentage of successfully resolved queries",
+            key="resolutions_tab2"
+        )
+    with metric_cols[2]:
+        st.metric(
+            label="Avg Response Time",
+            value=12,
+            delta=None,
+            help="Average response time in seconds",
+            key="response_time_tab2"
+        )
     
     # Interaction History
     st.subheader("Interaction Log")
@@ -364,14 +401,14 @@ with tab2:
             "type": "Billing Query",
             "query": "How to update patient billing?",
             "status": "Resolved",
-            "accuracy": "95%"
+            "accuracy": 95
         },
         {
             "timestamp": "2024-02-05 11:45",
             "type": "Compliance Issue",
             "query": "HIPAA data transfer concern",
             "status": "Escalated",
-            "accuracy": "100%"
+            "accuracy": 100
         }
     ]
     
@@ -399,11 +436,11 @@ with tab2:
                 </div>
                 <p><strong>Type:</strong> {interaction['type']}</p>
                 <p><strong>Query:</strong> {interaction['query']}</p>
-                <p><strong>Accuracy:</strong> {interaction['accuracy']}</p>
+                <p><strong>Accuracy:</strong> {interaction['accuracy']}%</p>
             </div>
             """,
             unsafe_allow_html=True,
-            key=f"interaction_{i}"
+            key=f"interaction_{i}_tab2"
         )
 
 # Tab 3: Knowledge Base & Interactions
@@ -445,7 +482,7 @@ with tab3:
                 </div>
                 """,
                 unsafe_allow_html=True,
-                key=f"msg_history_{i}"
+                key=f"msg_history_{i}_tab3"
             )
     
     # Chat History
@@ -460,12 +497,32 @@ with tab3:
                 </div>
                 """,
                 unsafe_allow_html=True,
-                key=f"chat_history_{i}"
+                key=f"chat_history_{i}_tab3"
             )
     
     # Escalation Analytics
     if st.session_state.escalations:
         st.subheader("Escalation Analytics")
+        metric_cols = st.columns(3)
+        with metric_cols[0]:
+            st.metric(
+                label="Total Escalations",
+                value=len(st.session_state.escalations),
+                key="total_escalations_tab3"
+            )
+        with metric_cols[1]:
+            st.metric(
+                label="Active Cases",
+                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Active"),
+                key="active_cases_tab3"
+            )
+        with metric_cols[2]:
+            st.metric(
+                label="Resolved Cases",
+                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Resolved"),
+                key="resolved_cases_tab3"
+            )
+        
         escalation_df = pd.DataFrame(st.session_state.escalations)
         st.dataframe(
             escalation_df,
@@ -476,7 +533,7 @@ with tab3:
                 "priority": "Priority",
                 "status": "Status"
             },
-            key="escalation_df"
+            key="escalation_df_tab3"
         )
 
 # Footer
