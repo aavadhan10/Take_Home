@@ -298,8 +298,8 @@ tab1, tab2, tab3 = st.tabs([
 
 # Tab 1: AI Support Question Assistant
 with tab1:
-    st.markdown("### 1. Internally Assist PSMs: Provider Question Support")
-    st.info("Answering common provider questions from internal documentation and escalating when necessary.")
+    st.markdown("### Type in you question below")
+    st.info("Answering common provider questions from internal documentation.")
     
     # Search Section
     psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
