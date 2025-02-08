@@ -222,5 +222,4 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Rerun to update the page state
-st.experimental_rerun()
+# Removed experimental_rerun to prevent errors
