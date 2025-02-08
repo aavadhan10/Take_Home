@@ -359,6 +359,7 @@ with tab1:
             "channel": selected_channel
         })
  Sentiment and Escalation Utility Functions
+# Sentiment and Escalation Utility Functions
 def analyze_sentiment(text):
     """
     Simple sentiment analysis to determine escalation likelihood.
