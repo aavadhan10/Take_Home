@@ -7,7 +7,7 @@ from anthropic import Anthropic
 
 # Page Configuration
 st.set_page_config(
-    page_title="Moxie AI Support Agent",
+    page_title="Moxie Provider Success Manager AI Support Agent",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -306,12 +306,12 @@ st.markdown("""
 
 # Create tabs with enhanced styling
 tab1, tab2, tab3 = st.tabs([
-    "🔍 Support Assistant",
+    "🔍 AI Support Question Assistant",
     "🚨 Escalation Center",
-    "📊 Insights"
+    "📊 Common Documentation + Interaction Insights"
 ])
 
-# Tab 1: Support Assistant
+# Tab 1: AI Support Question Assistan
 with tab1:
     # Search Section
     st.markdown("### How can we help you today?")
