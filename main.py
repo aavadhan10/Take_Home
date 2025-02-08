@@ -21,6 +21,15 @@ st.markdown("""
         background-color: #f8fafc;
     }
     
+    /* View Toggle Styling */
+    .view-toggle-container {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
     /* Button Styling */
     .stButton > button {
         width: 100%;
@@ -28,16 +37,26 @@ st.markdown("""
         padding: 10px 20px;
         transition: all 0.2s ease;
     }
-    .stButton > button:hover {
+    
+    .toggle-button {
+        background-color: #f1f5f9;
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 150px;
+    }
+    
+    .toggle-button:hover {
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    /* Input Field Styling */
-    .stTextInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        padding: 12px 20px;
+    .toggle-button.active {
+        background-color: #0284c7;
+        color: white;
+        border-color: #0284c7;
     }
     
     /* Card Styling */
@@ -55,10 +74,38 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
-    /* Tab Styling */
-    .stTabs > div > div > div {
-        gap: 8px;
-        padding: 10px 0;
+    /* Provider Chat Styling */
+    .chat-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    .chat-message {
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 0.5rem;
+        max-width: 85%;
+    }
+    
+    .chat-message.user {
+        background-color: #f1f5f9;
+        margin-left: auto;
+    }
+    
+    .chat-message.assistant {
+        background-color: #0284c7;
+        color: white;
+        margin-right: auto;
+    }
+    
+    .chat-input {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 8px;
+        margin-top: 1rem;
     }
     
     /* Response Container */
@@ -70,58 +117,49 @@ st.markdown("""
         margin: 20px 0;
     }
     
-    /* Chat Message Styling */
-    .chat-message {
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 0.5rem;
-        max-width: 80%;
+    /* Quick Access Cards */
+    .quick-access {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
     }
     
-    .chat-message.user {
-        background-color: #e2e8f0;
-        margin-left: auto;
-    }
-    
-    .chat-message.assistant {
-        background-color: #0284c7;
-        color: white;
-        margin-right: auto;
-    }
-    
-    /* Quick Access Styling */
     .quick-access-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         cursor: pointer;
         transition: all 0.2s ease;
     }
     
-    .quick-access-card.active {
-        border: 2px solid #0284c7;
+    .quick-access-card:hover {
         transform: translateY(-2px);
-    }
-    
-    /* Provider View Styling */
-    .provider-header {
-        text-align: center;
-        padding: 2rem 0;
-        background-color: white;
-        margin-bottom: 2rem;
-        border-radius: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    
-    /* Channel Selection */
-    .channel-select {
-        padding: 10px;
-        border-radius: 8px;
-        margin: 5px 0;
-        cursor: pointer;
-    }
-    .channel-select:hover {
-        background-color: #f1f5f9;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     </style>
 """, unsafe_allow_html=True)
+
+# Initialize session states
+if 'queries_handled' not in st.session_state:
+    st.session_state.queries_handled = 0
+if 'queries_escalated' not in st.session_state:
+    st.session_state.queries_escalated = 0
+if 'escalations' not in st.session_state:
+    st.session_state.escalations = []
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+if 'message_history' not in st.session_state:
+    st.session_state.message_history = []
+if 'current_view' not in st.session_state:
+    st.session_state.current_view = 'PSM'
+if 'chat_messages' not in st.session_state:
+    st.session_state.chat_messages = []
+if 'selected_quick_access' not in st.session_state:
+    st.session_state.selected_quick_access = None
+if 'provider_chat_input' not in st.session_state:
+    st.session_state.provider_chat_input = ""
 
 # Load API key and initialize Anthropic client
 try:
@@ -201,26 +239,6 @@ def ask_claude_with_rag(query):
             return response.content[0].text, relevant_docs
     except Exception as e:
         return f"Error: {str(e)}", pd.DataFrame()
-
-# Initialize session states
-if 'queries_handled' not in st.session_state:
-    st.session_state.queries_handled = 0
-if 'queries_escalated' not in st.session_state:
-    st.session_state.queries_escalated = 0
-if 'escalations' not in st.session_state:
-    st.session_state.escalations = []
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-if 'message_history' not in st.session_state:
-    st.session_state.message_history = []
-if 'current_view' not in st.session_state:
-    st.session_state.current_view = 'PSM'
-if 'chat_active' not in st.session_state:
-    st.session_state.chat_active = False
-if 'chat_messages' not in st.session_state:
-    st.session_state.chat_messages = []
-if 'selected_quick_access' not in st.session_state:
-    st.session_state.selected_quick_access = None
 
 # Sentiment Analysis and Escalation Function
 def analyze_potential_escalation(query):
@@ -302,42 +320,49 @@ def analyze_potential_escalation(query):
     
     return escalation_analysis
 
-# View Switcher at the top
+# View Toggle at the top
 st.markdown("""
-    <div style='padding: 1rem 0 2rem 0; text-align: center;'>
+    <div style='text-align: center; padding: 1rem 0;'>
         <h1 style='color: #0f172a; margin-bottom: 1rem;'>🚀 Moxie AI Support</h1>
     </div>
 """, unsafe_allow_html=True)
 
-# Centered columns for the view switcher
 col1, col2, col3 = st.columns([2,1,2])
 with col2:
-    view = st.select_slider(
-        "",
-        options=["👨‍💼 PSM Dashboard", "👤 Provider Portal"],
-        value="👨‍💼 PSM Dashboard",
-        key="view_selector"
-    )
-    st.session_state.current_view = 'PSM' if view == "👨‍💼 PSM Dashboard" else 'Provider'
-
+    view_col1, view_col2 = st.columns(2)
+    with view_col1:
+        if st.button("👨‍💼 PSM View", key="psm_view", type="primary" if st.session_state.current_view == 'PSM' else "secondary", use_container_width=True):
+            st.session_state.current_view = 'PSM'
+    with view_col2:
+        if st.button("👤 Provider View", key="provider_view", type="primary" if st.session_state.current_view == 'Provider' else "secondary", use_container_width=True):
+            st.session_state.current_view = 'Provider'
 # Main Content Based on View
 if st.session_state.current_view == 'PSM':
-    # PSM View - Original tabs
+    # PSM View with sidebar navigation
+    st.sidebar.markdown("### PSM Navigation")
+    st.sidebar.markdown("---")
+    
+    # Performance Metrics in Sidebar
+    st.sidebar.markdown("### Performance Metrics")
+    metrics_cols = st.sidebar.columns(2)
+    with metrics_cols[0]:
+        st.metric("Queries Handled", st.session_state.queries_handled)
+    with metrics_cols[1]:
+        st.metric("Escalated", st.session_state.queries_escalated)
+    
+    # Main PSM Content with tabs
     tab1, tab2, tab3 = st.tabs([
         "🔍 AI Support Question Assistant",
-        "🚨Escalation Center & Response Performance Tracker",
-        "📊 Internal Documentation Search"
+        "🚨Escalation Center",
+        "📊 Documentation Search"
     ])
     
-    # Tab 1: AI Support Question Assistant
     with tab1:
         st.markdown("### Type in your questions below")
         st.info("Answering common provider questions from internal documentation.")
         
-        # Search Section
-        psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+        psm_query = st.text_input("", placeholder="Type your question here...", key="psm_search")
         
-        # Center the button
         col1, col2, col3 = st.columns([2,1,2])
         with col2:
             search_button = st.button("🔍 Search", type="primary")
@@ -359,11 +384,9 @@ if st.session_state.current_view == 'PSM':
                 if st.button(f"💡 {query}", key=f"example_{i}"):
                     psm_query = query
 
-        # Process Query and Display Response
         if psm_query:
             response, relevant_docs = ask_claude_with_rag(psm_query)
             
-            # Display Response
             st.markdown(f"""
                 <div class='response-container'>
                     <h4>🤖 AI Assistant Response</h4>
@@ -371,7 +394,6 @@ if st.session_state.current_view == 'PSM':
                 </div>
             """, unsafe_allow_html=True)
             
-            # Related Documentation
             with st.expander("📚 Relevant Internal Documentation"):
                 st.dataframe(
                     relevant_docs[["question", "answer"]],
@@ -382,19 +404,15 @@ if st.session_state.current_view == 'PSM':
                     }
                 )
             
-            # Update metrics
             st.session_state.queries_handled += 1
-
-            # Add to chat history
             st.session_state.chat_history.append({
                 "query": psm_query,
                 "response": response,
                 "timestamp": pd.Timestamp.now()
             })
 
-    # Tab 2: Escalation Center & Response Performance
     with tab2:
-        st.markdown("### 🚨 Escalation Risk Analysis (Powered by AI Sentiment Analyzer)")
+        st.markdown("### 🚨 Escalation Analysis")
         
         # Escalation Analysis Section
         with st.expander("Analyze Potential Escalation", expanded=True):
@@ -408,7 +426,7 @@ if st.session_state.current_view == 'PSM':
                 if escalation_query:
                     escalation_analysis = analyze_potential_escalation(escalation_query)
                     
-                    # Display risk assessment
+                    # Display risk level
                     risk_color = {
                         "Low": "#10b981",
                         "Medium": "#f59e0b",
@@ -428,7 +446,7 @@ if st.session_state.current_view == 'PSM':
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Display recommended actions
+                    # Recommended Actions
                     st.markdown("### Recommended Actions:")
                     for action in escalation_analysis["recommended_actions"]:
                         st.markdown(f"- {action}")
@@ -440,199 +458,131 @@ if st.session_state.current_view == 'PSM':
                         "Score": escalation_analysis["detailed_assessment"].values()
                     })
                     st.dataframe(risk_df)
+                    
+                    if escalation_analysis["risk_level"] != "Low":
+                        st.session_state.queries_escalated += 1
                 else:
                     st.warning("Please enter details for escalation analysis")
         
         # Performance Metrics
         st.markdown("### 📊 Response Performance & Tracker")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
+        metrics_cols = st.columns(3)
+        with metrics_cols[0]:
             st.metric("Total Interactions", st.session_state.queries_handled)
-        with col2:
+        with metrics_cols[1]:
             resolution_rate = (st.session_state.queries_handled - st.session_state.queries_escalated) / max(st.session_state.queries_handled, 1) * 100
             st.metric("Resolution Rate", f"{resolution_rate:.1f}%")
-        with col3:
+        with metrics_cols[2]:
             st.metric("Escalated Cases", st.session_state.queries_escalated)
-        
-        # Recent Interactions Log
-        st.subheader("Recent Interactions")
-        if st.session_state.chat_history:
-            for chat in reversed(st.session_state.chat_history[-5:]):
-                st.markdown(f"""
-                    <div class='metric-card'>
-                        <p><strong>Timestamp:</strong> {chat['timestamp'].strftime('%Y-%m-%d %H:%M')}</p>
-                        <p><strong>Query:</strong> {chat['query']}</p>
-                        <p><strong>Response:</strong> {chat['response'][:200]}...</p>
-                    </div>
-                """, unsafe_allow_html=True)
 
-    # Tab 3: Internal Documentation Search
     with tab3:
-        st.markdown("### 📊 Knowledge Base & Interactions")
+        st.markdown("### 📊 Documentation Search")
         
-        # Document Search
-        st.subheader("📚 Internal Documentation")
-        if not internal_docs_df.empty:
-            doc_search = st.text_input("Search documentation...", key="doc_search")
-            if doc_search:
-                filtered_docs = internal_docs_df[
-                    internal_docs_df["question"].str.contains(doc_search, case=False) |
-                    internal_docs_df["answer"].str.contains(doc_search, case=False)
-                ]
-            else:
-                filtered_docs = internal_docs_df
-            
-            st.dataframe(
-                filtered_docs,
-                use_container_width=True,
-                column_config={
-                    "question": "Topic/Question",
-                    "answer": "Information/Answer"
-                }
-            )
+        doc_search = st.text_input("Search documentation...", key="doc_search")
+        if doc_search:
+            filtered_docs = internal_docs_df[
+                internal_docs_df["question"].str.contains(doc_search, case=False) |
+                internal_docs_df["answer"].str.contains(doc_search, case=False)
+            ]
+        else:
+            filtered_docs = internal_docs_df
         
-        # Message History
-        st.subheader("Recent Messages")
-        if st.session_state.message_history:
-            for msg in reversed(st.session_state.message_history[-5:]):
-                st.markdown(f"""
-                    <div class='metric-card'>
-                        <p><strong>To:</strong> {msg['provider']}</p>
-                        <p><strong>Channel:</strong> {msg['channel']}</p>
-                        <p><strong>Message:</strong> {msg['message']}</p>
-                        <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
-                    </div>
-                """, unsafe_allow_html=True)
+        st.dataframe(
+            filtered_docs,
+            use_container_width=True,
+            column_config={
+                "question": "Topic/Question",
+                "answer": "Information/Answer"
+            }
+        )
 
 else:
-    # Provider Portal View
+    # Provider View (ChatGPT style)
     st.markdown("""
-        <div class='provider-header'>
-            <h1 style='color: #0f172a; margin-bottom: 10px;'>Welcome to Moxie Support</h1>
-            <p style='color: #64748b; font-size: 1.2em;'>How can we help you today?</p>
+        <div class="chat-container">
+            <div style="text-align: center; margin-bottom: 1rem;">
+                <h2>Moxie Support Assistant</h2>
+                <p style="color: #64748b;">How can I help you today?</p>
+            </div>
         </div>
     """, unsafe_allow_html=True)
     
-    # Main Action Cards
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        chat_card = st.markdown("""
-            <div class='metric-card' style='text-align: center;'>
-                <div style='font-size: 2em; margin-bottom: 10px;'>💬</div>
-                <h3 style='margin-bottom: 10px;'>Chat Support</h3>
-                <p style='color: #64748b;'>Get instant help from our AI assistant</p>
-            </div>
-        """, unsafe_allow_html=True)
-        if chat_card:
-            st.session_state.chat_active = not st.session_state.chat_active
-    
-    with col2:
-        st.markdown("""
-            <div class='metric-card' style='text-align: center;'>
-                <div style='font-size: 2em; margin-bottom: 10px;'>❓</div>
-                <h3 style='margin-bottom: 10px;'>Help Center</h3>
-                <p style='color: #64748b;'>Browse our knowledge base</p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-    with col3:
-        st.markdown("""
-            <div class='metric-card' style='text-align: center;'>
-                <div style='font-size: 2em; margin-bottom: 10px;'>📞</div>
-                <h3 style='margin-bottom: 10px;'>Contact Support</h3>
-                <p style='color: #64748b;'>Reach our support team</p>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # Chat Interface (in sidebar when active)
-    if st.session_state.chat_active:
-        with st.sidebar:
-            st.markdown("### 💬 Chat Support")
-            st.markdown("---")
-            
-            # Chat History
-            for msg in st.session_state.chat_messages:
-                st.markdown(f"""
-                    <div class='chat-message {msg["role"]}'>
-                        {msg["content"]}
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            # Chat Input
-            with st.form("chat_input", clear_on_submit=True):
-                user_input = st.text_input("Type your message...", key="chat_input")
-                if st.form_submit_button("Send"):
-                    if user_input:
-                        # Add user message
-                        st.session_state.chat_messages.append({
-                            "role": "user",
-                            "content": user_input
-                        })
-                        # Simulate AI response
-                        ai_response = "I understand you're asking about " + user_input[:20] + "... Let me help you with that."
-                        st.session_state.chat_messages.append({
-                            "role": "assistant",
-                            "content": ai_response
-                        })
-                        st.experimental_rerun()
-
-    # Quick Access Section
-    st.markdown("### 🔗 Quick Access")
+    # Quick Access Suggestions
     quick_access = st.columns(4)
-    
-    quick_links = [
-        ("💳 Billing", "Update payment info, view invoices", [
-            "Update payment method",
-            "View recent invoices",
-            "Billing history",
-            "Payment settings"
-        ]),
-        ("⚙️ Settings", "Account preferences, notifications", [
-            "Profile settings",
-            "Notification preferences",
-            "Security settings",
-            "Integration settings"
-        ]),
-        ("📊 Analytics", "View business metrics", [
-            "Performance dashboard",
-            "Revenue analytics",
-            "Customer insights",
-            "Growth metrics"
-        ]),
-        ("📚 Resources", "Guidelines, documentation", [
-            "User guides",
-            "API documentation",
-            "Best practices",
-            "Video tutorials"
-        ])
+    suggestions = [
+        "💳 Billing Support",
+        "🔧 Technical Help",
+        "📱 Account Settings",
+        "📚 Resources"
     ]
     
-    # Display Quick Access Cards
-    for i, (title, desc, options) in enumerate(quick_links):
+    for i, suggestion in enumerate(suggestions):
         with quick_access[i]:
-            card_class = 'active' if st.session_state.selected_quick_access == i else ''
-            if st.markdown(f"""
-                <div class='metric-card quick-access-card {card_class}' style='text-align: center;'>
-                    <h4>{title}</h4>
-                    <p style='font-size: 0.9em; color: #64748b;'>{desc}</p>
+            if st.button(suggestion, use_container_width=True):
+                st.session_state.provider_chat_input = f"I need help with {suggestion}"
+    
+    # Chat Interface
+    chat_container = st.container()
+    with chat_container:
+        for message in st.session_state.chat_messages:
+            st.markdown(f"""
+                <div class="chat-message {message['role']}">
+                    {message['content']}
                 </div>
-            """, unsafe_allow_html=True):
-                st.session_state.selected_quick_access = i
+            """, unsafe_allow_html=True)
+    
+    # Chat Input
+    st.markdown("<div class='chat-input'>", unsafe_allow_html=True)
+    col1, col2 = st.columns([6,1])
+    with col1:
+        chat_input = st.text_input(
+            "",
+            value=st.session_state.provider_chat_input,
+            placeholder="Type your message here...",
+            key="provider_chat"
+        )
+    with col2:
+        if st.button("Send", type="primary", use_container_width=True):
+            if chat_input:
+                # Add user message
+                st.session_state.chat_messages.append({
+                    "role": "user",
+                    "content": chat_input
+                })
+                
+                # Get AI response using RAG
+                response, _ = ask_claude_with_rag(chat_input)
+                
+                # Add AI response
+                st.session_state.chat_messages.append({
+                    "role": "assistant",
+                    "content": response
+                })
+                
+                # Clear input
+                st.session_state.provider_chat_input = ""
+                st.experimental_rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    # Display options for selected quick access card
-    if st.session_state.selected_quick_access is not None:
-        selected_options = quick_links[st.session_state.selected_quick_access][2]
-        st.markdown("---")
-        option_cols = st.columns(len(selected_options))
-        for i, option in enumerate(selected_options):
-            with option_cols[i]:
-                st.markdown(f"""
-                    <div class='metric-card' style='text-align: center; padding: 10px;'>
-                        <p>{option}</p>
-                    </div>
-                """, unsafe_allow_html=True)
+    # Additional Resources (collapsed by default)
+    with st.expander("📚 Additional Resources"):
+        resources_col1, resources_col2 = st.columns(2)
+        with resources_col1:
+            st.markdown("""
+                ### Quick Links
+                - 📋 Billing & Payments
+                - 🔐 Account Security
+                - 📱 Mobile App Guide
+                - 📞 Contact Support
+            """)
+        with resources_col2:
+            st.markdown("""
+                ### Popular Articles
+                - How to update payment methods
+                - Setting up 2FA
+                - Integration guides
+                - Best practices
+            """)
 
 # Footer
 st.markdown("---")
