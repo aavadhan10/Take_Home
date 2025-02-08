@@ -365,9 +365,9 @@ st.markdown(
 
 # Create tabs
 tab1, tab2, tab3 = st.tabs([
-    "\U0001F50D AI Support Question Assistant",
-    "\U0001F6A8 Escalation Center & Response Performance Tracker",
-    "\U0001F4CA Internal Documentation Search"
+    "🔍 AI Support Question Assistant",
+    "🚨 Escalation Center & Response Performance Tracker",
+    "📊 Internal Documentation Search"
 ])
 
 # Tab 1: AI Support Question Assistant
@@ -381,7 +381,7 @@ with tab1:
     # Center the button
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
-        search_button = st.button("\U0001F50D Search", type="primary")
+        search_button = st.button("🔍 Search", type="primary")
     
     # Example Queries
     st.markdown("##### Quick Access Questions")
@@ -397,7 +397,7 @@ with tab1:
     example_cols = st.columns(3)
     for i, query in enumerate(example_queries):
         with example_cols[i % 3]:
-            if st.button(f"\U0001F4A1 {query}", key=f"example_{i}"):
+            if st.button(f"💡 {query}", key=f"example_{i}"):
                 psm_query = query
                 
     # Process and display response
@@ -407,7 +407,7 @@ with tab1:
         st.markdown(
             f"""
             <div class='response-container'>
-                <h4><span>\U0001F916</span> AI Assistant Response</h4>
+                <h4>🤖 AI Assistant Response</h4>
                 <p>{response}</p>
             </div>
             """,
@@ -415,7 +415,7 @@ with tab1:
         )
         
         # Related Documentation
-        with st.expander("\U0001F4DA Relevant Internal Documentation"):
+        with st.expander("📚 Relevant Internal Documentation"):
             st.dataframe(
                 relevant_docs[["question", "answer"]],
                 use_container_width=True,
@@ -436,7 +436,7 @@ with tab1:
 
 # Tab 2: Escalation Analysis Section
 with tab2:
-    st.markdown("### \U0001F6A8 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
+    st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
     
     # Escalation Analysis Section
     with st.expander("Analyze Potential Escalation", expanded=True):
@@ -446,7 +446,7 @@ with tab2:
             height=150
         )
         
-        if st.button("\U0001F50D Analyze Escalation Potential", type="primary"):
+        if st.button("🔍 Analyze Escalation Potential", type="primary"):
             if escalation_query:
                 analysis = analyze_potential_escalation(escalation_query)
                 
@@ -464,7 +464,43 @@ with tab2:
                             <p style='margin: 5px 0 0;'>Risk Score: {analysis["risk_score"]}/100</p>
                         </div>
                         <div style='font-size: 2em;'>
-                            {"\U0001F6A8" if analysis["risk_level"] == "High" else "\U000026A0" if analysis["risk_level"] == "Medium" else "\U00002705"}
+                            {'🚨' if analysis["risk_level"] == "High" else '⚠️' if analysis["risk_level"] == "Medium" else '✅'}
+                        </div>
+                    </div>
+                </div>
+                """
+                st.markdown(risk_html, unsafe_allow_html=True)
+# Tab 2: Escalation Analysis Section
+with tab2:
+    st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
+    
+    # Escalation Analysis Section
+    with st.expander("Analyze Potential Escalation", expanded=True):
+        escalation_query = st.text_area(
+            "Enter Incident Details", 
+            placeholder="Describe the concern or incident in comprehensive detail...",
+            height=150
+        )
+        
+        if st.button("🔍 Analyze Escalation Potential", type="primary"):
+            if escalation_query:
+                analysis = analyze_potential_escalation(escalation_query)
+                
+                # Display overall risk assessment
+                risk_html = f"""
+                <div style='
+                    background-color: {analysis["risk_color"]}; 
+                    color: white; 
+                    padding: 15px; 
+                    border-radius: 10px;
+                '>
+                    <div style='display: flex; justify-content: space-between; align-items: center;'>
+                        <div>
+                            <h3 style='margin: 0;'>Risk Level: {analysis["risk_level"]}</h3>
+                            <p style='margin: 5px 0 0;'>Risk Score: {analysis["risk_score"]}/100</p>
+                        </div>
+                        <div style='font-size: 2em;'>
+                            {'🚨' if analysis["risk_level"] == "High" else '⚠️' if analysis["risk_level"] == "Medium" else '✅'}
                         </div>
                     </div>
                 </div>
@@ -503,7 +539,7 @@ with tab2:
                 st.warning("Please enter details for escalation analysis")
     
     # Performance Metrics
-    st.markdown("### \U0001F4CA Response Performance & Tracker")
+    st.markdown("### 📊 Response Performance & Tracker")
     
     # Metrics columns
     col1, col2, col3 = st.columns(3)
@@ -567,10 +603,10 @@ with tab2:
 
 # Tab 3: Knowledge Base & Interactions
 with tab3:
-    st.markdown("### \U0001F4CA Knowledge Base & Interactions")
+    st.markdown("### 📊 Knowledge Base & Interactions")
     
     # Relevant Documents Section
-    st.subheader("\U0001F4DA Internal Documentation")
+    st.subheader("📚 Internal Documentation")
     if not internal_docs_df.empty:
         doc_search = st.text_input("Search documentation...", key="doc_search")
         if doc_search:
