@@ -53,8 +53,6 @@ if 'messages' not in st.session_state:
     st.session_state.messages = []
 if 'chat_input' not in st.session_state:
     st.session_state.chat_input = ""
-if 'success_manager_request' not in st.session_state:
-    st.session_state.success_manager_request = False
 
 # Main chat interface with healthcare focus
 st.markdown("""
@@ -66,31 +64,19 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Quick actions with Success Manager button
-st.markdown("### Quick Actions")
-quick_actions = st.columns([1,1,1,1,1.5])  # Adjusted column widths
+# Enhanced quick action buttons with healthcare focus
+quick_actions = st.columns(4)
 actions = [
     "📋 Patient Record Help",
     "💉 Treatment Protocols",
     "📱 Moxie App Support",
-    "📊 Practice Analytics",
-    "🤝 Connect with Success Manager"  # Modified button text
+    "📊 Practice Analytics"
 ]
 
 for i, action in enumerate(actions):
     with quick_actions[i]:
         if st.button(action, use_container_width=True):
-            if "Success Manager" in action:
-                # Set flag for Success Manager connection
-                st.session_state.success_manager_request = True
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "A Moxie Provider Success Manager will contact you shortly. Please provide a brief description of your inquiry."
-                })
-                # Optionally, you could add a modal or more prominent UI element here
-                st.info("Success Manager connection request initiated. Please describe your inquiry in the chat.")
-            else:
-                st.session_state.chat_input = f"I need help with {action}"
+            st.session_state.chat_input = f"I need help with {action}"
 
 # Chat messages display
 chat_container = st.container()
@@ -121,14 +107,8 @@ with col2:
                 "content": chat_input
             })
             
-            # Check if this is a response to Success Manager request
-            if st.session_state.success_manager_request:
-                response = f"Thank you for your detailed message. Our Success Manager team will review your inquiry and reach out to you directly. Typical response time is within 1-2 business hours."
-                st.session_state.success_manager_request = False
-            else:
-                # Simulate AI response
-                response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
-            
+            # Simulate AI response
+            response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": response
