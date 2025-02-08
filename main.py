@@ -482,12 +482,12 @@ with tab2:
                     "Low Risk": {
                         "color": "#10b981",
                         "icon": "✅",
-                        "description": "No immediate escalation needed"
+                        "description": "Will respond autonomously. No immediate escalation needed"
                     },
                     "Medium Risk": {
                         "color": "#f59e0b", 
                         "icon": "⚠️",
-                        "description": "Review recommended"
+                        "description": "Review recommended. Manual escalation needed"
                     },
                     "High Risk": {
                         "color": "#ef4444", 
