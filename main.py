@@ -20,6 +20,9 @@ st.markdown("""
     .stApp {
         background-color: #f8fafc;
     }
+    .dark-mode .stApp {
+        background-color: #1e293b;
+    }
     
     /* Button Styling */
     .stButton > button {
@@ -39,6 +42,11 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         padding: 12px 20px;
     }
+    .dark-mode .stTextInput > div > div > input {
+        border-color: #475569;
+        background-color: #1e293b;
+        color: #e2e8f0;
+    }
     
     /* Card Styling */
     .metric-card {
@@ -48,11 +56,19 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         margin-bottom: 15px;
     }
+    .dark-mode .metric-card {
+        background-color: #334155;
+        color: #e2e8f0;
+        border: 1px solid #475569;
+    }
     
     /* Tab Styling */
     .stTabs > div > div > div {
         gap: 8px;
         padding: 10px 0;
+    }
+    .dark-mode .stTabs {
+        color: #e2e8f0;
     }
     
     /* Response Container */
@@ -62,6 +78,11 @@ st.markdown("""
         border-radius: 10px;
         border: 1px solid #e2e8f0;
         margin: 20px 0;
+    }
+    .dark-mode .response-container {
+        background-color: #334155;
+        border-color: #475569;
+        color: #e2e8f0;
     }
     
     /* Example Query Buttons */
@@ -77,6 +98,13 @@ st.markdown("""
     .example-query:hover {
         background-color: #e2e8f0;
     }
+    .dark-mode .example-query {
+        background-color: #334155;
+        color: #e2e8f0;
+    }
+    .dark-mode .example-query:hover {
+        background-color: #475569;
+    }
     
     /* Channel Selection */
     .channel-select {
@@ -88,13 +116,33 @@ st.markdown("""
     .channel-select:hover {
         background-color: #f1f5f9;
     }
+    .dark-mode .channel-select:hover {
+        background-color: #334155;
+    }
     
     /* Sidebar Styling */
     .css-1d391kg {
         padding: 1rem;
     }
-    </style>
-""", unsafe_allow_html=True)
+    .dark-mode .css-1d391kg {
+        background-color: #1e293b;
+    }
+    
+    /* Text Colors for Dark Mode */
+    .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4 {
+        color: #e2e8f0;
+    }
+    .dark-mode p {
+        color: #cbd5e1;
+    }
+    
+    /* Metric Cards in Dark Mode */
+    .dark-mode .metric-card h2 {
+        color: #38bdf8 !important;
+    }
+    .dark-mode .metric-card p {
+        color: #94a3b8 !important;
+    }
 
 # Load API key and initialize Anthropic client
 try:
