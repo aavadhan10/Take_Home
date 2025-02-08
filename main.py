@@ -534,7 +534,7 @@ with tab2:
                 st.warning("Please enter details for escalation analysis")
     
     # Performance Metrics
-    st.markdown("### 📊 Interaction Performance")
+    st.markdown("### 📊 Response Performance & Tracker ")
     
     # Metrics columns
     col1, col2, col3 = st.columns(3)
