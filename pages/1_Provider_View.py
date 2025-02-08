@@ -8,10 +8,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS (keeping the clean chat interface styling)
+# Custom CSS (improved alignment and styling)
 st.markdown("""
     <style>
-    /* Existing styling */
+    /* General styling */
     .stApp {
         background-color: #f8fafc;
     }
@@ -53,6 +53,37 @@ st.markdown("""
         padding-left: 1rem;
         padding-bottom: 1rem;
     }
+
+    /* Improved alignment for buttons and inputs */
+    .stButton button {
+        width: 100%;
+    }
+
+    .stTextInput input {
+        width: 100%;
+    }
+
+    /* Connection options styling */
+    .connection-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .connection-options button {
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #ddd;
+        background-color: white;
+        color: #333;
+    }
+
+    .connection-options button:hover {
+        background-color: #f1f5f9;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -62,7 +93,8 @@ def initialize_session_state():
         'messages': [],
         'chat_input': '',
         'success_manager_mode': False,
-        'show_connection_options': False  # New state for connection options
+        'show_connection_options': False,
+        'success_manager_message': ''  # New state for success manager message
     }
     for key, value in default_states.items():
         if key not in st.session_state:
@@ -153,36 +185,49 @@ if st.session_state.show_connection_options:
     st.markdown("---")
     st.markdown("### How would you like to connect with a Success Manager?")
     
+    # Text input for leaving a message
+    st.session_state.success_manager_message = st.text_area(
+        "Leave a message for the Success Manager (optional):",
+        value=st.session_state.success_manager_message,
+        placeholder="Describe your inquiry here..."
+    )
+    
     # Options for connecting
+    st.markdown('<div class="connection-options">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        if st.button("💬 Chat Support", use_container_width=True):
+        if st.button("💬 Chat Support", key="chat_support"):
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": "You have chosen to connect via Chat Support. A Success Manager will be with you shortly."
+                "content": f"You have chosen to connect via Chat Support. A Success Manager will be with you shortly.\n\nYour message: {st.session_state.success_manager_message}"
             })
             st.session_state.show_connection_options = False  # Close the options
+            st.session_state.success_manager_message = ""  # Clear the message
     with col2:
-        if st.button("📧 Email", use_container_width=True):
+        if st.button("📧 Email", key="email"):
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": "You have chosen to connect via Email. A Success Manager will contact you shortly."
+                "content": f"You have chosen to connect via Email. A Success Manager will contact you shortly.\n\nYour message: {st.session_state.success_manager_message}"
             })
             st.session_state.show_connection_options = False  # Close the options
+            st.session_state.success_manager_message = ""  # Clear the message
     with col3:
-        if st.button("📱 SMS", use_container_width=True):
+        if st.button("📱 SMS", key="sms"):
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": "You have chosen to connect via SMS. A Success Manager will contact you shortly."
+                "content": f"You have chosen to connect via SMS. A Success Manager will contact you shortly.\n\nYour message: {st.session_state.success_manager_message}"
             })
             st.session_state.show_connection_options = False  # Close the options
+            st.session_state.success_manager_message = ""  # Clear the message
     with col4:
-        if st.button("❓ Help Center", use_container_width=True):
+        if st.button("❓ Help Center", key="help_center"):
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": "You have chosen to visit the Help Center. Here's the link: [Help Center](#)"
+                "content": f"You have chosen to visit the Help Center. Here's the link: [Help Center](#)\n\nYour message: {st.session_state.success_manager_message}"
             })
             st.session_state.show_connection_options = False  # Close the options
+            st.session_state.success_manager_message = ""  # Clear the message
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
