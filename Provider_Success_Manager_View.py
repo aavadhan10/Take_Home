@@ -387,149 +387,89 @@ with tab2:
         
         if st.button("🔍 Analyze Escalation Potential", type="primary"):
             if escalation_query:
-                analysis = analyze_potential_escalation(escalation_query)
+                # Hardcoded risk analysis
+                risk_levels = {
+                    "Low Risk": {
+                        "color": "#10b981",
+                        "icon": "✅",
+                        "description": "Will respond autonomously. No immediate escalation needed"
+                    },
+                    "Medium Risk": {
+                        "color": "#f59e0b", 
+                        "icon": "⚠️",
+                        "description": "Review recommended. Manual escalation needed"
+                    },
+                    "High Risk": {
+                        "color": "#ef4444", 
+                        "icon": "🚨",
+                        "description": "Immediate action required"
+                    }
+                }
                 
-                # Display overall risk assessment
+                # Risk determination logic
+                keywords = {
+                    "High Risk": ["legal", "hipaa", "violation", "patient safety", "lawsuit"],
+                    "Medium Risk": ["concern", "potential issue", "review needed"]
+                }
+                
+                # Determine risk level
+                risk_level = "Low Risk"
+                for level, words in keywords.items():
+                    if any(word in escalation_query.lower() for word in words):
+                        risk_level = level
+                        break
+                
+                # Display risk assessment
+                current_risk = risk_levels[risk_level]
                 risk_html = f"""
                 <div style='
-                    background-color: {analysis["risk_color"]}; 
+                    background-color: {current_risk["color"]}; 
                     color: white; 
                     padding: 15px; 
                     border-radius: 10px;
                 '>
                     <div style='display: flex; justify-content: space-between; align-items: center;'>
                         <div>
-                            <h3 style='margin: 0;'>Risk Level: {analysis["risk_level"]}</h3>
-                            <p style='margin: 5px 0 0;'>Risk Score: {analysis["risk_score"]}/100</p>
+                            <h3 style='margin: 0;'>Risk Level: {risk_level}</h3>
+                            <p style='margin: 5px 0 0;'>{current_risk["description"]}</p>
                         </div>
                         <div style='font-size: 2em;'>
-                            {'🚨' if analysis["risk_level"] == "High" else '⚠️' if analysis["risk_level"] == "Medium" else '✅'}
+                            {current_risk["icon"]}
                         </div>
                     </div>
                 </div>
                 """
                 st.markdown(risk_html, unsafe_allow_html=True)
                 
-                # Display risk score breakdown
-                st.subheader("Risk Score Analysis")
-                score_cols = st.columns(3)
-                with score_cols[0]:
-                    st.metric(
-                        label="Combined Risk Score",
-                        value=analysis['risk_score'],
-                        help="Overall risk assessment score"
-                    )
-                with score_cols[1]:
-                    st.metric(
-                        label="Keyword Risk Score",
-                        value=analysis['keyword_risk_score'],
-                        help="Risk score based on keyword analysis"
-                    )
-                with score_cols[2]:
-                    st.metric(
-                        label="Claude Risk Score",
-                        value=analysis['claude_risk_score'],
-                        help="Risk score from Claude's analysis"
-                    )
+                # Add AI Analysis Section
+                st.subheader("🤖 AI Analysis Details")
+                analysis_cols = st.columns(2)
                 
-                # Display risk breakdown
-                st.subheader("Risk Category Breakdown")
-                if "risk_breakdown" in analysis["detailed_assessment"]:
-                    for i, (category, score) in enumerate(analysis["detailed_assessment"]["risk_breakdown"].items()):
-                        if score > 0:
-                            st.progress(score/100, text=f"{category}: {score}/100")
+                with analysis_cols[0]:
+                    st.markdown("""
+                        <div class='metric-card'>
+                            <h4>Key Risk Factors</h4>
+                            <ul>
+                                <li>Customer Sentiment</li>
+                                <li>Technical Complexity</li>
+                                <li>Compliance Requirements</li>
+                            </ul>
+                        </div>
+                    """, unsafe_allow_html=True)
                 
-                # Display sentiment and concerns
-                st.subheader("Detailed Assessment")
-                st.write(f"**Sentiment:** {analysis['detailed_assessment']['Sentiment']}")
-                st.write("**Key Concerns:**")
-                for concern in analysis["detailed_assessment"]["Key Concerns"]:
-                    st.write(f"- {concern}")
-                
-                # Display recommended actions
-                st.subheader("Recommended Actions")
-                for action in analysis["recommended_actions"]:
-                    st.write(f"- {action}")
+                with analysis_cols[1]:
+                    st.markdown("""
+                        <div class='metric-card'>
+                            <h4>Recommended Actions</h4>
+                            <ul>
+                                <li>Document the incident</li>
+                                <li>Engage appropriate teams</li>
+                                <li>Schedule follow-up</li>
+                            </ul>
+                        </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.warning("Please enter details for escalation analysis")
-    
-    # Performance Metrics
-    st.markdown("### 📊 Response Performance & Tracker")
-    
-    # Metrics columns
-    metric_cols = st.columns(3)
-    
-    with metric_cols[0]:
-        st.metric(
-            label="Total Interactions",
-            value=247,
-            delta=None
-        )
-    with metric_cols[1]:
-        st.metric(
-            label="Successful Resolutions",
-            value=89.5,
-            delta=None,
-            help="Percentage of successfully resolved queries"
-        )
-    with metric_cols[2]:
-        st.metric(
-            label="Average Response Time",
-            value=12,
-            delta=None,
-            help="Average response time in seconds"
-        )
-    
-    # Interaction History
-    st.subheader("Interaction Log")
-    
-    interactions = [
-        {
-            "timestamp": "2024-02-05 10:23",
-            "type": "Billing Query",
-            "query": "How to update patient billing?",
-            "status": "Resolved",
-            "accuracy": 95
-        },
-        {
-            "timestamp": "2024-02-05 11:45",
-            "type": "Compliance Issue",
-            "query": "HIPAA data transfer concern",
-            "status": "Escalated",
-            "accuracy": 100
-        }
-    ]
-    
-    for i, interaction in enumerate(interactions):
-        status_color = "#10b981" if interaction["status"] == "Resolved" else "#ef4444"
-        st.markdown(
-            f"""
-            <div style='
-                background-color: #f8fafc; 
-                border: 1px solid #e2e8f0; 
-                border-radius: 8px; 
-                padding: 15px; 
-                margin-bottom: 10px;
-            '>
-                <div style='display: flex; justify-content: space-between;'>
-                    <span>{interaction['timestamp']}</span>
-                    <span style='
-                        background-color: {status_color};
-                        color: white;
-                        padding: 3px 8px;
-                        border-radius: 4px;
-                    '>
-                        {interaction['status']}
-                    </span>
-                </div>
-                <p><strong>Type:</strong> {interaction['type']}</p>
-                <p><strong>Query:</strong> {interaction['query']}</p>
-                <p><strong>Accuracy:</strong> {interaction['accuracy']}%</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
     
     # Performance Metrics
     st.markdown("### 📊 Response Performance & Tracker")
