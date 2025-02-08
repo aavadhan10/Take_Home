@@ -143,7 +143,6 @@ st.markdown("""
     .dark-mode .metric-card p {
         color: #94a3b8 !important;
     }
-
 # Load API key and initialize Anthropic client
 try:
     api_key = st.secrets["anthropic_api_key"]
