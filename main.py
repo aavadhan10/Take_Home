@@ -115,7 +115,7 @@ st.title("🚀 Moxie AI Support Agent")
 st.markdown("### Empowering Provider Success Managers with AI-powered assistance")
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Support Assistant", "Escalation Center", "Insights & Library"])
+tab1, tab2, tab3 = st.tabs(["Support Assistant & External Provider Contact", "Escalation Center", "Insights & Library"])
 
 # Sidebar for Navigation and Metrics
 with st.sidebar:
@@ -128,39 +128,19 @@ with st.sidebar:
         st.metric("Questions Answered", st.session_state.queries_handled)
     with col2:
         st.metric("Questions Escalated", st.session_state.queries_escalated)
+    
+    # Common Provider Questions Section
+    st.subheader("📚 Common Provider Questions")
+    st.write("Access internal documentation and resources.")
+    if not internal_docs_df.empty:
+        # Display a preview or searchable subset of documents
+        st.dataframe(internal_docs_df.head())
+        # Add a search or filter functionality if needed
+        search_query = st.text_input("Search Documentation", placeholder="Type to search documents...")
 
-# Tab 1: Support Assistant
+# Tab 1: Support Assistant & External Provider Contact
 with tab1:
     st.header("🔍 What can we help you with today?")
-    
-    # NEW: Integrated Communication Channel Selection
-    st.subheader("📞 Select Communication Channel")
-    support_channel = st.radio(
-        "Choose How You'd Like to Communicate",
-        ["Chat Support", "Email Response", "SMS Handling", "Help Center Ticket"],
-        key="support_channel_main"
-    )
-    st.write(f"Selected Channel: **{support_channel}**")
-    
-    # Provider information lookup
-    st.subheader("🔍 Find Provider Information")
-    provider_data = {
-        "Provider 1": {"Email": "provider1@example.com", "Phone": "123-456-7890"},
-        "Provider 2": {"Email": "provider2@example.com", "Phone": "987-654-3210"},
-    }
-    provider_name = st.selectbox("Select Provider", list(provider_data.keys()))
-    if provider_name:
-        st.write(f"**Email:** {provider_data[provider_name]['Email']}")
-        st.write(f"**Phone:** {provider_data[provider_name]['Phone']}")
-
-    # Contact Provider Feature
-    st.subheader("📩 Contact Provider")
-    provider_message = st.text_area("Message to Provider", placeholder="Type your message to the provider...")
-    if st.button(f"Send via {support_channel}"):
-        st.success(f"Message sent to {provider_name} via {support_channel}!")
-        st.write(f"**Provider:** {provider_name}")
-        st.write(f"**Channel:** {support_channel}")
-        st.write(f"**Message:** {provider_message}")
 
     # Query Processing Section
     st.subheader("❓ Ask Your Question")
@@ -223,13 +203,34 @@ with tab1:
                     })
                     st.success("Escalation created! Navigate to the Escalation Center to manage it.")
 
-    # Common Provider Questions Answered by Internal Documentation
-    st.header("📚 Common Provider Questions Answered by Internal Documentation")
-    st.write("Access internal documentation and resources here.")
-    if not internal_docs_df.empty:
-        st.dataframe(internal_docs_df)
-    else:
-        st.warning("No reference materials found.")
+    # Communication Channel Selection
+    st.subheader("📞 Select Communication Channel")
+    support_channel = st.radio(
+        "Choose How You'd Like to Communicate",
+        ["Chat Support", "Email Response", "SMS Handling", "Help Center Ticket"],
+        key="support_channel_main"
+    )
+    st.write(f"Selected Channel: **{support_channel}**")
+    
+    # Provider information lookup
+    st.subheader("🔍 Find Provider Information")
+    provider_data = {
+        "Provider 1": {"Email": "provider1@example.com", "Phone": "123-456-7890"},
+        "Provider 2": {"Email": "provider2@example.com", "Phone": "987-654-3210"},
+    }
+    provider_name = st.selectbox("Select Provider", list(provider_data.keys()))
+    if provider_name:
+        st.write(f"**Email:** {provider_data[provider_name]['Email']}")
+        st.write(f"**Phone:** {provider_data[provider_name]['Phone']}")
+
+    # Contact Provider Feature
+    st.subheader("📩 Contact Provider")
+    provider_message = st.text_area("Message to Provider", placeholder="Type your message to the provider...")
+    if st.button(f"Send via {support_channel}"):
+        st.success(f"Message sent to {provider_name} via {support_channel}!")
+        st.write(f"**Provider:** {provider_name}")
+        st.write(f"**Channel:** {support_channel}")
+        st.write(f"**Message:** {provider_message}")
 
 # Tab 2: Escalation Center
 with tab2:
