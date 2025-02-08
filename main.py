@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from transformers import AutoTokenizer, AutoModel
 import torch
 from anthropic import Anthropic
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Page Configuration
 st.set_page_config(
@@ -359,43 +362,158 @@ with tab1:
 with tab2:
     st.markdown("### 🚨 Escalation Management")
     
-    # Create New Escalation
-    with st.expander("Create New Escalation", expanded=True):
-        esc_col1, esc_col2 = st.columns([2,1])
-        with esc_col1:
-            escalation_query = st.text_input("Query to Escalate")
-            escalation_reason = st.selectbox(
-                "Reason",
-                ["Compliance", "Legal", "Technical", "Other"]
-            )
-        with esc_col2:
-            priority = st.select_slider(
-                "Priority",
-                ["Low", "Medium", "High", "Urgent"]
-            )
-            if st.button("🚨 Create Escalation", type="primary"):
-                st.session_state.escalations.append({
-                    "query": escalation_query,
-                    "reason": escalation_reason,
-                    "priority": priority,
-                    "status": "Pending"
-                })
-                st.session_state.queries_escalated += 1
-                st.success("Escalation created!")
+    # Tabs for different escalation views
+    esc_tabs = st.tabs(["📋 Create Escalation", "🔍 Escalation Log", "📡 AI Confidence Analytics"])
     
-    # View Escalations
-    if st.session_state.escalations:
-        for idx, esc in enumerate(st.session_state.escalations):
-            with st.container():
-                st.markdown(f"""
-                    <div class='metric-card'>
-                        <h4>{esc['reason']} Escalation - {esc['priority']}</h4>
-                        <p>{esc['query']}</p>
-                        <p style='color: #ea580c;'>Status: {esc['status']}</p>
-                    </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.info("No active escalations")
+    # Create New Escalation Tab
+    with esc_tabs[0]:
+        with st.expander("Create New Escalation", expanded=True):
+            esc_col1, esc_col2 = st.columns([2,1])
+            with esc_col1:
+                escalation_query = st.text_input("Query to Escalate")
+                escalation_reason = st.multiselect(
+                    "Reason(s)",
+                    ["Compliance", "Legal", "Technical", "AI Low Confidence", "Complex Query", "Other"]
+                )
+                additional_context = st.text_area("Additional Context", height=100)
+            with esc_col2:
+                priority = st.select_slider(
+                    "Priority",
+                    ["Low", "Medium", "High", "Urgent"]
+                )
+                if st.button("🚨 Create Escalation", type="primary"):
+                    escalation_entry = {
+                        "query": escalation_query,
+                        "reason": ", ".join(escalation_reason),
+                        "priority": priority,
+                        "status": "Pending",
+                        "additional_context": additional_context,
+                        "timestamp": pd.Timestamp.now()
+                    }
+                    st.session_state.escalations.append(escalation_entry)
+                    st.session_state.queries_escalated += 1
+                    st.success("Escalation created!")
+    
+    # Escalation Log Tab
+    with esc_tabs[1]:
+        st.markdown("### 📋 Escalation Log")
+        
+        if st.session_state.escalations:
+            # Escalation Log DataFrame
+            escalation_df = pd.DataFrame(st.session_state.escalations)
+            
+            # Filtering options
+            col1, col2 = st.columns(2)
+            with col1:
+                filter_priority = st.multiselect(
+                    "Filter by Priority", 
+                    options=["Low", "Medium", "High", "Urgent"],
+                    default=["High", "Urgent"]
+                )
+            with col2:
+                filter_status = st.multiselect(
+                    "Filter by Status",
+                    options=["Pending", "In Progress", "Resolved"],
+                    default=["Pending"]
+                )
+            
+            # Apply filters
+            filtered_df = escalation_df[
+                escalation_df['priority'].isin(filter_priority) &
+                escalation_df['status'].isin(filter_status)
+            ]
+            
+            # Display filtered escalations
+            st.dataframe(
+                filtered_df,
+                use_container_width=True,
+                column_config={
+                    "query": st.column_config.TextColumn("Query"),
+                    "reason": st.column_config.TextColumn("Reason"),
+                    "priority": st.column_config.SelectboxColumn(
+                        "Priority",
+                        options=["Low", "Medium", "High", "Urgent"],
+                        required=True
+                    ),
+                    "status": st.column_config.SelectboxColumn(
+                        "Status",
+                        options=["Pending", "In Progress", "Resolved"],
+                        required=True
+                    ),
+                    "timestamp": st.column_config.DatetimeColumn("Timestamp")
+                }
+            )
+        else:
+            st.info("No escalations in the log")
+    
+    # AI Confidence Analytics Tab
+    with esc_tabs[2]:
+        st.markdown("### 📡 AI Confidence Analytics")
+        
+        # Confidence Score Distribution
+        if st.session_state.ai_confidence_log:
+            confidence_df = pd.DataFrame(st.session_state.ai_confidence_log)
+            
+            # Confidence Level Breakdown
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("#### Confidence Level Distribution")
+                confidence_level_counts = confidence_df['confidence_level'].value_counts()
+                fig1 = plt.figure(figsize=(8, 6))
+                plt.pie(
+                    confidence_level_counts, 
+                    labels=confidence_level_counts.index, 
+                    autopct='%1.1f%%',
+                    colors=['green', 'orange', 'red']
+                )
+                plt.title("AI Response Confidence Levels")
+                st.pyplot(fig1)
+            
+            with col2:
+                st.markdown("#### Confidence Score Over Time")
+                fig2, ax = plt.subplots(figsize=(10, 6))
+                confidence_df.plot(
+                    x='timestamp', 
+                    y='confidence_score', 
+                    kind='line', 
+                    ax=ax,
+                    marker='o'
+                )
+                plt.title("AI Confidence Score Trend")
+                plt.xlabel("Timestamp")
+                plt.ylabel("Confidence Score")
+                st.pyplot(fig2)
+            
+            # Detailed Confidence Metrics
+            st.markdown("#### Detailed Confidence Metrics")
+            st.dataframe(
+                confidence_df[['query', 'confidence_score', 'confidence_level', 'avg_similarity', 'doc_coverage', 'timestamp']],
+                use_container_width=True,
+                column_config={
+                    "query": "Query",
+                    "confidence_score": st.column_config.NumberColumn(
+                        "Confidence Score",
+                        format="%.2f%%"
+                    ),
+                    "confidence_level": st.column_config.TextColumn("Confidence Level"),
+                    "avg_similarity": st.column_config.NumberColumn(
+                        "Avg Document Similarity",
+                        format="%.2f%%"
+                    ),
+                    "doc_coverage": st.column_config.NumberColumn(
+                        "Document Coverage",
+                        format="%.2f%%"
+                    ),
+                    "timestamp": st.column_config.DatetimeColumn("Timestamp")
+                }
+            )
+            
+            # Export Option
+            if st.button("📤 Export Confidence Log"):
+                confidence_df.to_csv("ai_confidence_log.csv", index=False)
+                st.success("Confidence log exported successfully!")
+        else:
+            st.info("No AI confidence data available yet. Start using the AI assistant to generate insights.")
 
 # Tab 3: Common Documentation + Interaction Insights
 with tab3:
