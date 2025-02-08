@@ -9,7 +9,7 @@ import json
 # Page Configuration
 st.set_page_config(
     page_title="Moxie AI Support Agent Demo",
-    page_icon="\U0001F680",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -154,7 +154,7 @@ def ask_claude_with_rag(query):
         return "Error: AI assistant is unavailable.", pd.DataFrame()
     
     try:
-        with st.spinner("\U0001F50D Searching through documentation..."):
+        with st.spinner("🔍 Searching through documentation..."):
             relevant_docs = retrieve_documents(query)
             context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
             
@@ -179,167 +179,6 @@ def ask_claude_with_rag(query):
     except Exception as e:
         return f"Error: {str(e)}", relevant_docs
 
-# Risk Analysis Functions
-def get_risk_score(query_lower):
-    """
-    Calculate risk score based on keyword triggers
-    """
-    escalation_triggers = {
-        "critical_risks": {
-            "keywords": ["legal action", "lawsuit", "discrimination", 
-                        "malpractice", "violation", "harassment", 
-                        "unethical", "patient danger"],
-            "weight": 3
-        },
-        "compliance_concerns": {
-            "keywords": ["hipaa", "data breach", "confidentiality", 
-                        "regulatory violation", "privacy concern", 
-                        "medical record", "patient information"],
-            "weight": 2
-        },
-        "urgent_matters": {
-            "keywords": ["emergency", "critical", "immediate action", 
-                        "urgent resolution", "patient safety", 
-                        "life-threatening", "severe incident"],
-            "weight": 2
-        },
-        "technical_issues": {
-            "keywords": ["system failure", "integration breakdown", 
-                        "security vulnerability", "data loss", 
-                        "critical system error"],
-            "weight": 1
-        }
-    }
-    
-    risk_scores = {
-        "critical_risk_score": 0,
-        "compliance_risk_score": 0,
-        "urgency_score": 0,
-        "technical_complexity_score": 0
-    }
-    
-    # Calculate scores for each category
-    for category, config in escalation_triggers.items():
-        matches = sum(1 for keyword in config["keywords"] if keyword in query_lower)
-        if category == "critical_risks":
-            risk_scores["critical_risk_score"] = matches * config["weight"] * 10
-        elif category == "compliance_concerns":
-            risk_scores["compliance_risk_score"] = matches * config["weight"] * 8
-        elif category == "urgent_matters":
-            risk_scores["urgency_score"] = matches * config["weight"] * 7
-        elif category == "technical_issues":
-            risk_scores["technical_complexity_score"] = matches * config["weight"] * 5
-    
-    # Calculate total weighted score (0-100)
-    total_score = min(100, sum(risk_scores.values()))
-    
-    return total_score, risk_scores
-
-def analyze_sentiment_with_claude(query, client):
-    """
-    Analyzes query sentiment and escalation risk using Claude
-    Returns a detailed analysis including sentiment, risk level, and recommended actions
-    """
-    if client is None:
-        return {
-            "error": "AI assistant unavailable",
-            "risk_level": "Unknown",
-            "risk_score": 0,
-            "recommended_actions": ["Please check API connection"]
-        }
-    
-    try:
-        # Get keyword-based risk score
-        query_lower = query.lower()
-        keyword_risk_score, risk_breakdown = get_risk_score(query_lower)
-        
-        prompt = f"""
-        Analyze this support query for sentiment, risk level, and needed actions. Provide a structured analysis with:
-        1. Overall sentiment (positive, neutral, negative)
-        2. Risk level (Low, Medium, High) with clear reasoning
-        3. Key concerns identified
-        4. Recommended actions
-        5. Numerical risk score (0-100)
-
-        Support query: {query}
-
-        Format your response as a JSON object with these exact keys:
-        sentiment, risk_level, risk_score, key_concerns, recommended_actions
-        """
-
-        response = client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        
-        try:
-            claude_analysis = json.loads(response.content[0].text)
-            
-            # Combine Claude's risk score with keyword-based score
-            combined_risk_score = (keyword_risk_score + claude_analysis["risk_score"]) / 2
-            
-            analysis = {
-                **claude_analysis,
-                "risk_score": round(combined_risk_score),
-                "risk_breakdown": risk_breakdown,
-                "keyword_risk_score": keyword_risk_score,
-                "claude_risk_score": claude_analysis["risk_score"]
-            }
-        except json.JSONDecodeError:
-            analysis = {
-                "sentiment": "neutral",
-                "risk_level": "Medium",
-                "risk_score": 50,
-                "key_concerns": ["Unable to parse detailed analysis"],
-                "recommended_actions": ["Manual review recommended"],
-                "risk_breakdown": risk_breakdown,
-                "keyword_risk_score": keyword_risk_score,
-                "claude_risk_score": 50
-            }
-            
-        # Add color coding for risk levels
-        risk_colors = {
-            "Low": "#10b981",    # Green
-            "Medium": "#f59e0b",  # Yellow
-            "High": "#ef4444"     # Red
-        }
-        
-        analysis["risk_color"] = risk_colors.get(analysis["risk_level"], "#64748b")
-        
-        return analysis
-        
-    except Exception as e:
-        return {
-            "error": str(e),
-            "risk_level": "Error",
-            "risk_score": 0,
-            "recommended_actions": ["System error - manual review required"]
-        }
-
-def analyze_potential_escalation(query):
-    """
-    Enhanced escalation analysis using Claude
-    """
-    sentiment_analysis = analyze_sentiment_with_claude(query, client)
-    
-    escalation_analysis = {
-        "potential_escalation": sentiment_analysis["risk_score"] > 50,
-        "risk_level": sentiment_analysis.get("risk_level", "Medium"),
-        "risk_score": sentiment_analysis.get("risk_score", 50),
-        "detailed_assessment": {
-            "Sentiment": sentiment_analysis.get("sentiment", "neutral"),
-            "Key Concerns": sentiment_analysis.get("key_concerns", []),
-            "risk_breakdown": sentiment_analysis.get("risk_breakdown", {})
-        },
-        "recommended_actions": sentiment_analysis.get("recommended_actions", []),
-        "risk_color": sentiment_analysis.get("risk_color", "#64748b"),
-        "keyword_risk_score": sentiment_analysis.get("keyword_risk_score", 0),
-        "claude_risk_score": sentiment_analysis.get("claude_risk_score", 0)
-    }
-    
-    return escalation_analysis
-
 # Initialize session state
 if 'queries_handled' not in st.session_state:
     st.session_state.queries_handled = 0
@@ -352,11 +191,11 @@ if 'chat_history' not in st.session_state:
 if 'message_history' not in st.session_state:
     st.session_state.message_history = []
 
-# Main page layout
+# Main page title and description
 st.markdown(
     """
     <div style='text-align: center; padding: 20px 0;'>
-        <h1>\U0001F680 Moxie AI Support Agent Demo</h1>
+        <h1>🚀 Moxie AI Support Agent Demo</h1>
         <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
     </div>
     """,
@@ -376,12 +215,12 @@ with tab1:
     st.info("Answering common provider questions from internal documentation.")
     
     # Search Section
-    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search_tab1")
     
     # Center the button
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
-        search_button = st.button("🔍 Search", type="primary")
+        search_button = st.button("🔍 Search", type="primary", key="search_button_tab1")
     
     # Example Queries
     st.markdown("##### Quick Access Questions")
@@ -397,7 +236,7 @@ with tab1:
     example_cols = st.columns(3)
     for i, query in enumerate(example_queries):
         with example_cols[i % 3]:
-            if st.button(f"💡 {query}", key=f"example_{i}"):
+            if st.button(f"💡 {query}", key=f"example_query_{i}"):
                 psm_query = query
                 
     # Process and display response
@@ -443,46 +282,11 @@ with tab2:
         escalation_query = st.text_area(
             "Enter Incident Details", 
             placeholder="Describe the concern or incident in comprehensive detail...",
-            height=150
+            height=150,
+            key="escalation_text_area"
         )
         
-        if st.button("🔍 Analyze Escalation Potential", type="primary"):
-            if escalation_query:
-                analysis = analyze_potential_escalation(escalation_query)
-                
-                # Display overall risk assessment
-                risk_html = f"""
-                <div style='
-                    background-color: {analysis["risk_color"]}; 
-                    color: white; 
-                    padding: 15px; 
-                    border-radius: 10px;
-                '>
-                    <div style='display: flex; justify-content: space-between; align-items: center;'>
-                        <div>
-                            <h3 style='margin: 0;'>Risk Level: {analysis["risk_level"]}</h3>
-                            <p style='margin: 5px 0 0;'>Risk Score: {analysis["risk_score"]}/100</p>
-                        </div>
-                        <div style='font-size: 2em;'>
-                            {'🚨' if analysis["risk_level"] == "High" else '⚠️' if analysis["risk_level"] == "Medium" else '✅'}
-                        </div>
-                    </div>
-                </div>
-                """
-                st.markdown(risk_html, unsafe_allow_html=True)
-# Tab 2: Escalation Analysis Section
-with tab2:
-    st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
-    
-    # Escalation Analysis Section
-    with st.expander("Analyze Potential Escalation", expanded=True):
-        escalation_query = st.text_area(
-            "Enter Incident Details", 
-            placeholder="Describe the concern or incident in comprehensive detail...",
-            height=150
-        )
-        
-        if st.button("🔍 Analyze Escalation Potential", type="primary"):
+        if st.button("🔍 Analyze Escalation Potential", type="primary", key="analyze_button"):
             if escalation_query:
                 analysis = analyze_potential_escalation(escalation_query)
                 
@@ -511,30 +315,30 @@ with tab2:
                 st.subheader("Risk Score Analysis")
                 score_cols = st.columns(3)
                 with score_cols[0]:
-                    st.metric("Combined Risk Score", f"{analysis['risk_score']}/100")
+                    st.metric("Combined Risk Score", f"{analysis['risk_score']}/100", key="combined_score")
                 with score_cols[1]:
-                    st.metric("Keyword Risk Score", f"{analysis['keyword_risk_score']}/100")
+                    st.metric("Keyword Risk Score", f"{analysis['keyword_risk_score']}/100", key="keyword_score")
                 with score_cols[2]:
-                    st.metric("Claude Risk Score", f"{analysis['claude_risk_score']}/100")
+                    st.metric("Claude Risk Score", f"{analysis['claude_risk_score']}/100", key="claude_score")
                 
                 # Display risk breakdown
                 st.subheader("Risk Category Breakdown")
                 if "risk_breakdown" in analysis["detailed_assessment"]:
-                    for category, score in analysis["detailed_assessment"]["risk_breakdown"].items():
+                    for i, (category, score) in enumerate(analysis["detailed_assessment"]["risk_breakdown"].items()):
                         if score > 0:
-                            st.progress(score/100, text=f"{category}: {score}/100")
+                            st.progress(score/100, text=f"{category}: {score}/100", key=f"progress_{i}")
                 
                 # Display sentiment and concerns
                 st.subheader("Detailed Assessment")
                 st.write(f"**Sentiment:** {analysis['detailed_assessment']['Sentiment']}")
                 st.write("**Key Concerns:**")
-                for concern in analysis["detailed_assessment"]["Key Concerns"]:
-                    st.write(f"- {concern}")
+                for i, concern in enumerate(analysis["detailed_assessment"]["Key Concerns"]):
+                    st.write(f"- {concern}", key=f"concern_{i}")
                 
                 # Display recommended actions
                 st.subheader("Recommended Actions")
-                for action in analysis["recommended_actions"]:
-                    st.write(f"- {action}")
+                for i, action in enumerate(analysis["recommended_actions"]):
+                    st.write(f"- {action}", key=f"action_{i}")
             else:
                 st.warning("Please enter details for escalation analysis")
     
@@ -545,11 +349,11 @@ with tab2:
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Total Interactions", "247")
+        st.metric("Total Interactions", "247", key="total_interactions")
     with col2:
-        st.metric("Successful Resolutions", "221 (89.5%)")
+        st.metric("Successful Resolutions", "221 (89.5%)", key="successful_resolutions")
     with col3:
-        st.metric("Avg Response Time", "12 sec")
+        st.metric("Avg Response Time", "12 sec", key="avg_response_time")
     
     # Interaction History
     st.subheader("Interaction Log")
@@ -571,7 +375,7 @@ with tab2:
         }
     ]
     
-    for interaction in interactions:
+    for i, interaction in enumerate(interactions):
         status_color = "#10b981" if interaction["status"] == "Resolved" else "#ef4444"
         st.markdown(
             f"""
@@ -598,7 +402,8 @@ with tab2:
                 <p><strong>Accuracy:</strong> {interaction['accuracy']}</p>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
+            key=f"interaction_{i}"
         )
 
 # Tab 3: Knowledge Base & Interactions
@@ -608,7 +413,7 @@ with tab3:
     # Relevant Documents Section
     st.subheader("📚 Internal Documentation")
     if not internal_docs_df.empty:
-        doc_search = st.text_input("Search documentation...", key="doc_search")
+        doc_search = st.text_input("Search documentation...", key="doc_search_tab3")
         if doc_search:
             filtered_docs = internal_docs_df[
                 internal_docs_df["question"].str.contains(doc_search, case=False) |
@@ -629,7 +434,7 @@ with tab3:
     # Recent Message History
     if st.session_state.message_history:
         st.subheader("Recent Messages")
-        for msg in reversed(st.session_state.message_history[-5:]):
+        for i, msg in enumerate(reversed(st.session_state.message_history[-5:])):
             st.markdown(
                 f"""
                 <div class='metric-card'>
@@ -639,13 +444,14 @@ with tab3:
                     <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
+                key=f"msg_history_{i}"
             )
     
     # Chat History
     st.subheader("Recent AI Interactions")
     if st.session_state.chat_history:
-        for chat in st.session_state.chat_history[-5:]:  # Show last 5 interactions
+        for i, chat in enumerate(st.session_state.chat_history[-5:]):
             st.markdown(
                 f"""
                 <div class='metric-card'>
@@ -653,7 +459,8 @@ with tab3:
                     <p><strong>Response:</strong> {chat['response'][:200]}...</p>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
+                key=f"chat_history_{i}"
             )
     
     # Escalation Analytics
@@ -668,7 +475,8 @@ with tab3:
                 "reason": "Reason",
                 "priority": "Priority",
                 "status": "Status"
-            }
+            },
+            key="escalation_df"
         )
 
 # Footer
