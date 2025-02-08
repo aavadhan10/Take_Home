@@ -107,102 +107,122 @@ if 'queries_handled' not in st.session_state:
     st.session_state.queries_handled = 0
 if 'queries_escalated' not in st.session_state:
     st.session_state.queries_escalated = 0
+if 'escalations' not in st.session_state:
+    st.session_state.escalations = []
 
 # Title and Overview
 st.title("🚀 Moxie AI Support Agent")
 st.markdown("### Empowering Provider Success Managers with AI-powered assistance")
 
-# Sidebar for User Interactions and Metrics
-with st.sidebar:
-    st.header("🤖 AI Agent Dashboard")
+# Create tabs
+tab1, tab2, tab3 = st.tabs(["Support Assistant + Contact Provider", "Escalation Center", "Insights & Library"])
+
+# Tab 1: Support Assistant + Contact Provider
+with tab1:
+    st.header("🔍 What can we help you with today?")
+    psm_query = st.text_input("Ask your question", placeholder="Type your question here...")
+
+    # Example query buttons
+    st.markdown("**Need inspiration? Try these examples:**")
+    example_cols = st.columns(3)
+    example_queries = [
+        "How do I update billing info?",
+        "What are the marketing guidelines?",
+        "How do I handle patient data?"
+    ]
+    for col, query in zip(example_cols, example_queries):
+        if col.button(query):
+            psm_query = query
+
+    # Query Processing
+    if psm_query:
+        if api_key is None or client is None:
+            st.error("AI assistant is not configured. Please check your API key.")
+        else:
+            # Determine if escalation is needed
+            needs_escalation, escalation_reason = determine_escalation(psm_query)
+            
+            # Generate AI Response
+            response, relevant_docs = ask_claude_with_rag(psm_query)
+            
+            # Update Metrics
+            if needs_escalation:
+                st.session_state.queries_escalated += 1
+                st.session_state.escalations.append({
+                    "query": psm_query,
+                    "reason": escalation_reason,
+                    "status": "Pending"
+                })
+            else:
+                st.session_state.queries_handled += 1
+            
+            # Display Response
+            st.markdown("### 🤖 Here’s what I found:")
+            st.info(response)
+            
+            # Escalation Buttons
+            if needs_escalation:
+                with st.expander("🚨 Escalation Options"):
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        if st.button("Escalate to Compliance"):
+                            st.session_state.escalations[-1]["status"] = "Compliance"
+                            st.success("This has been escalated to the Compliance team!")
+                    with col2:
+                        if st.button("Escalate to Legal"):
+                            st.session_state.escalations[-1]["status"] = "Legal"
+                            st.success("This has been escalated to the Legal team!")
+                    with col3:
+                        if st.button("Escalate to Finance"):
+                            st.session_state.escalations[-1]["status"] = "Finance"
+                            st.success("This has been escalated to the Finance team!")
+
+            # Retrieved Documents
+            with st.expander("📚 Relevant Documentation"):
+                for idx, row in relevant_docs.iterrows():
+                    st.markdown(f"**{row['question']}**")
+                    st.write(row['answer'])
+                    st.markdown("---")
+
+# Tab 2: Escalation Center
+with tab2:
+    st.header("🚨 Escalation Center")
+    if st.session_state.escalations:
+        st.write("**Current Escalations:**")
+        for idx, escalation in enumerate(st.session_state.escalations):
+            with st.expander(f"Escalation {idx + 1}: {escalation['query']}"):
+                st.write(f"**Reason:** {escalation['reason']}")
+                st.write(f"**Status:** {escalation['status']}")
+    else:
+        st.info("No escalations at the moment.")
+
+# Tab 3: Insights & Library
+with tab3:
+    st.header("📊 Insights & Library")
     
-    # Communication channel selection
-    st.subheader("📞 Communication Channel")
-    support_channel = st.radio(
-        "Select Channel",
-        ["Chat Support", "Email Response", "SMS Handling", "Help Center Ticket"],
-        key="support_channel"
-    )
-    st.write(f"Selected Channel: **{support_channel}**")
-
-    # Provider information lookup
-    st.subheader("🔍 Find Provider Information")
-    provider_data = {
-        "Provider 1": {"Email": "provider1@example.com", "Phone": "123-456-7890"},
-        "Provider 2": {"Email": "provider2@example.com", "Phone": "987-654-3210"},
-    }
-    provider_name = st.selectbox("Select Provider", list(provider_data.keys()))
-    if provider_name:
-        st.write(f"**Email:** {provider_data[provider_name]['Email']}")
-        st.write(f"**Phone:** {provider_data[provider_name]['Phone']}")
-
-    # Performance metrics
-    st.subheader("📊 Performance Metrics")
+    # Performance Metrics
+    st.subheader("Performance Metrics")
     col1, col2 = st.columns(2)
     with col1:
         st.metric("Questions Answered", st.session_state.queries_handled)
     with col2:
         st.metric("Questions Escalated", st.session_state.queries_escalated)
-
-# Main Interface
-st.header("🔍 What can we help you with today?")
-psm_query = st.text_input("Ask your question", placeholder="Type your question here...")
-
-# Example query buttons
-st.markdown("**Need inspiration? Try these examples:**")
-example_cols = st.columns(3)
-example_queries = [
-    "How do I update billing info?",
-    "What are the marketing guidelines?",
-    "How do I handle patient data?"
-]
-for col, query in zip(example_cols, example_queries):
-    if col.button(query):
-        psm_query = query
-
-# Query Processing
-if psm_query:
-    if api_key is None or client is None:
-        st.error("AI assistant is not configured. Please check your API key.")
+    
+    # Escalation Dashboard
+    st.subheader("Escalation Dashboard")
+    if st.session_state.escalations:
+        escalation_df = pd.DataFrame(st.session_state.escalations)
+        st.dataframe(escalation_df)
     else:
-        # Determine if escalation is needed
-        needs_escalation, escalation_reason = determine_escalation(psm_query)
-        
-        # Generate AI Response
-        response, relevant_docs = ask_claude_with_rag(psm_query)
-        
-        # Update Metrics
-        if needs_escalation:
-            st.session_state.queries_escalated += 1
-        else:
-            st.session_state.queries_handled += 1
-        
-        # Display Response
-        st.markdown("### 🤖 Here’s what I found:")
-        st.info(response)
-        
-        # Escalation Buttons
-        with st.expander("🚨 Escalation Options"):
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("Escalate to Compliance"):
-                    st.session_state.escalation_status = "Compliance"
-                    st.success("This has been escalated to the Compliance team!")
-            with col2:
-                if st.button("Escalate to Legal"):
-                    st.session_state.escalation_status = "Legal"
-                    st.success("This has been escalated to the Legal team!")
-            with col3:
-                if st.button("Escalate to Finance"):
-                    st.session_state.escalation_status = "Finance"
-                    st.success("This has been escalated to the Finance team!")
-
-        # Retrieved Documents
-        with st.expander("📚 Relevant Documentation"):
-            for idx, row in relevant_docs.iterrows():
-                st.markdown(f"**{row['question']}**")
-                st.write(row['answer'])
-                st.markdown("---")
+        st.info("No escalations to display.")
+    
+    # Reference Materials
+    st.subheader("📚 Reference Materials")
+    st.write("Access internal documentation and resources here.")
+    if not internal_docs_df.empty:
+        st.dataframe(internal_docs_df)
+    else:
+        st.warning("No reference materials found.")
 
 # Footer
 st.markdown("---")
