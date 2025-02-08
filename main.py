@@ -218,9 +218,9 @@ with st.sidebar:
     
     # Sample provider data
     provider_data = {
-        "Provider 1": {"email": "provider1@moxie.com", "phone": "123-456-7890", "preferred": "email"},
-        "Provider 2": {"email": "provider2@moxie.com", "phone": "987-654-3210", "preferred": "sms"},
-        "Provider 3": {"email": "provider3@moxie.com", "phone": "555-123-4567", "preferred": "chat"}
+        "Provider 1: Jesse Lau": {"email": "provider1@moxie.com", "phone": "123-456-7890", "preferred": "email"},
+        "Provider 2: Dan Friedman": {"email": "provider2@moxie.com", "phone": "987-654-3210", "preferred": "sms"},
+        "Provider 3 Kamau Massey": {"email": "provider3@moxie.com", "phone": "555-123-4567", "preferred": "chat"}
     }
     
     selected_provider = st.selectbox("Select Provider", list(provider_data.keys()))
