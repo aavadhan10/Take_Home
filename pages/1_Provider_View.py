@@ -102,7 +102,7 @@ with col1:
     )
 
 with col2:
-    send_button = st.button("Send", type="primary", use_container_width=True, key="send_button")
+    send_button = st.button("Ask a Question", type="primary", use_container_width=True, key="send_button")
     if send_button and chat_input:
         # Add user message
         st.session_state.messages.append({
