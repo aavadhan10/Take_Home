@@ -2,28 +2,26 @@ import streamlit as st
 
 # Page Configuration
 st.set_page_config(
-    page_title="Moxie Provider Portal",
-    page_icon="🚀",
+    page_title="Provider View",
+    page_icon="👤",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for chat interface
+# Custom CSS (keeping the clean chat interface styling)
 st.markdown("""
     <style>
-    /* Clean, modern styling */
+    /* Existing styling */
     .stApp {
         background-color: #f8fafc;
     }
     
-    /* Chat container */
     .chat-container {
         max-width: 800px;
         margin: 0 auto;
         padding: 2rem;
     }
     
-    /* Message styling */
     .chat-message {
         padding: 1rem;
         margin: 0.5rem 0;
@@ -43,23 +41,6 @@ st.markdown("""
         margin-right: auto;
     }
     
-    /* Quick actions */
-    .quick-action {
-        background-color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 1rem;
-        margin: 0.5rem;
-        cursor: pointer;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-    }
-    
-    .quick-action:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    /* Animations */
     @keyframes fade-in {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -73,23 +54,23 @@ if 'messages' not in st.session_state:
 if 'chat_input' not in st.session_state:
     st.session_state.chat_input = ""
 
-# Main chat interface
+# Main chat interface with healthcare focus
 st.markdown("""
     <div class='chat-container'>
         <div style='text-align: center; margin-bottom: 2rem;'>
             <h1>Welcome to Moxie Support</h1>
-            <p style='color: #64748b;'>How can we help you today?</p>
+            <p style='color: #64748b;'>Get instant help with patient care, documentation, and practice management</p>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# Quick action buttons
+# Enhanced quick action buttons with healthcare focus
 quick_actions = st.columns(4)
 actions = [
-    "💳 Billing Help",
-    "🔧 Technical Support",
-    "📅 Schedule Consultation",
-    "📚 Resources"
+    "📋 Patient Record Help",
+    "💉 Treatment Protocols",
+    "📱 Moxie App Support",
+    "📊 Practice Analytics"
 ]
 
 for i, action in enumerate(actions):
@@ -114,7 +95,7 @@ with col1:
     chat_input = st.text_input(
         "",
         value=st.session_state.chat_input,
-        placeholder="Type your message here...",
+        placeholder="Type your question here...",
         key="chat_input_field"
     )
 with col2:
@@ -126,8 +107,8 @@ with col2:
                 "content": chat_input
             })
             
-            # Simulate AI response (replace with actual AI integration)
-            response = f"Thanks for your message about {chat_input}. A support agent will assist you shortly."
+            # Simulate AI response
+            response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": response
@@ -138,24 +119,30 @@ with col2:
             st.experimental_rerun()
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Resources section
-with st.expander("📚 Helpful Resources"):
+# Enhanced resources section with healthcare focus
+with st.expander("📚 Provider Resources"):
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("""
             ### Quick Links
-            - [Billing Portal](https://example.com)
-            - [Account Settings](https://example.com)
-            - [Support Documentation](https://example.com)
-            - [Book a Consultation](https://example.com)
+            - 📋 Clinical Documentation Guide
+            - 💊 Treatment Guidelines
+            - 📱 Moxie Mobile App Guide
+            - 🏥 Practice Management Tips
         """)
-    
     with col2:
         st.markdown("""
             ### Popular Articles
-            - Setting up your account
-            - Payment methods guide
-            - Integration setup
-            - Best practices
+            - HIPAA Compliance Best Practices
+            - Patient Record Management
+            - Scheduling System Guide
+            - Treatment Planning Tools
         """)
+
+# Footer
+st.markdown("---")
+st.markdown("""
+    <div style='text-align: center; padding: 20px 0; color: #64748b;'>
+        Moxie Provider Support Portal
+    </div>
+""", unsafe_allow_html=True)
