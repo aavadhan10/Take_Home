@@ -443,6 +443,25 @@ with tab2:
                     "timestamp": st.column_config.DatetimeColumn("Timestamp")
                 }
             )
+            
+            # Status Update and Actions
+            if st.checkbox("Enable Escalation Management"):
+                selected_rows = st.data_editor(
+                    filtered_df,
+                    num_rows="dynamic",
+                    column_config={
+                        "status": st.column_config.SelectboxColumn(
+                            "Status",
+                            options=["Pending", "In Progress", "Resolved"],
+                            required=True
+                        )
+                    }
+                )
+                
+                if st.button("Update Escalations"):
+                    # Update the main escalations list
+                    st.session_state.escalations = selected_rows.to_dict('records')
+                    st.success("Escalations updated successfully!")
         else:
             st.info("No escalations in the log")
     
@@ -450,8 +469,14 @@ with tab2:
     with esc_tabs[2]:
         st.markdown("### 📡 AI Confidence Analytics")
         
+        # Ensure ai_confidence_log is initialized
+        if 'ai_confidence_log' not in st.session_state:
+            st.session_state.ai_confidence_log = []
+        
         # Confidence Score Distribution
         if st.session_state.ai_confidence_log:
+            import matplotlib.pyplot as plt
+            
             confidence_df = pd.DataFrame(st.session_state.ai_confidence_log)
             
             # Confidence Level Breakdown
@@ -459,6 +484,7 @@ with tab2:
             with col1:
                 st.markdown("#### Confidence Level Distribution")
                 confidence_level_counts = confidence_df['confidence_level'].value_counts()
+                
                 fig1 = plt.figure(figsize=(8, 6))
                 plt.pie(
                     confidence_level_counts, 
@@ -468,6 +494,7 @@ with tab2:
                 )
                 plt.title("AI Response Confidence Levels")
                 st.pyplot(fig1)
+                plt.close(fig1)
             
             with col2:
                 st.markdown("#### Confidence Score Over Time")
@@ -483,6 +510,7 @@ with tab2:
                 plt.xlabel("Timestamp")
                 plt.ylabel("Confidence Score")
                 st.pyplot(fig2)
+                plt.close(fig2)
             
             # Detailed Confidence Metrics
             st.markdown("#### Detailed Confidence Metrics")
