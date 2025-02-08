@@ -14,10 +14,86 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# [Your existing CSS styling remains unchanged]
+# Custom CSS for styling
 st.markdown("""
     <style>
-    /* Your existing CSS styles */
+    /* General Styling */
+    .stApp {
+        background-color: #f8fafc;
+    }
+    
+    /* Button Styling */
+    .stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        padding: 10px 20px;
+        transition: all 0.2s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Input Field Styling */
+    .stTextInput > div > div > input {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 12px 20px;
+    }
+    
+    /* Card Styling */
+    .metric-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+    }
+    
+    /* Tab Styling */
+    .stTabs > div > div > div {
+        gap: 8px;
+        padding: 10px 0;
+    }
+    
+    /* Response Container */
+    .response-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        margin: 20px 0;
+    }
+    
+    /* Example Query Buttons */
+    .example-query {
+        background-color: #f1f5f9;
+        border-radius: 20px;
+        padding: 8px 16px;
+        margin: 4px;
+        display: inline-block;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .example-query:hover {
+        background-color: #e2e8f0;
+    }
+    
+    /* Channel Selection */
+    .channel-select {
+        padding: 10px;
+        border-radius: 8px;
+        margin: 5px 0;
+        cursor: pointer;
+    }
+    .channel-select:hover {
+        background-color: #f1f5f9;
+    }
+    
+    /* Sidebar Styling */
+    .css-1d391kg {
+        padding: 1rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -30,7 +106,7 @@ except Exception as e:
     api_key = None
     client = None
 
-# Your existing embedding and model functions
+# Embedding and model functions
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0]
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
@@ -277,6 +353,120 @@ if 'chat_history' not in st.session_state:
 if 'message_history' not in st.session_state:
     st.session_state.message_history = []
 
+# Main page layout
+st.markdown("""
+    <div style='text-align: center; padding: 20px 0;'>
+        <h1>🚀 Moxie AI Support Agent Demo</h1>
+        <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# Create tabs
+tab1, tab2, tab3 = st.tabs([
+    "🔍 AI Support Question Assistant",
+    "🚨 Escalation Center & Response Performance Tracker",
+    "📊 Internal Documentation Search"
+])
+
+# Tab 1: AI Support Question Assistant
+with tab1:
+    st.markdown("### Type in your questions below")
+    st.info("Answering common provider questions from internal documentation.")
+    
+    # Search Section
+    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    
+    # Center the button
+    col1, col2, col3 = st.columns([2,1,2])
+    with col2:
+        search_button = st.button("🔍 Search", type="primary")
+    
+    # Example Queries
+    st.markdown("##### Quick Access Questions")
+    example_queries = [
+        "How do I update billing info?",
+        "What are the marketing guidelines?",
+        "How do I handle patient data?",
+        "Reset password",
+        "Business hours",
+        "Access dashboard"
+    ]
+    
+    example_cols = st.columns(3)
+    for i, query in enumerate(example_queries):
+        with example_cols[i % 3]:
+            if st.button(f"💡 {query}", key=f"example_{i}"):
+                psm_query = query
+                
+    # Process and display response
+    if psm_query:
+        response, relevant_docs = ask_claude_with_rag(psm_query)
+        
+        st.markdown("""
+            <div class='response-container'>
+                <h4>🤖 AI Assistant Response</h4>
+                <p>{}</p>
+    # Tab 1: AI Support Question Assistant
+with tab1:
+    st.markdown("### Type in your questions below")
+    st.info("Answering common provider questions from internal documentation.")
+    
+    # Search Section
+    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    
+    # Center the button
+    col1, col2, col3 = st.columns([2,1,2])
+    with col2:
+        search_button = st.button("🔍 Search", type="primary")
+    
+    # Example Queries
+    st.markdown("##### Quick Access Questions")
+    example_queries = [
+        "How do I update billing info?",
+        "What are the marketing guidelines?",
+        "How do I handle patient data?",
+        "Reset password",
+        "Business hours",
+        "Access dashboard"
+    ]
+    
+    example_cols = st.columns(3)
+    for i, query in enumerate(example_queries):
+        with example_cols[i % 3]:
+            if st.button(f"💡 {query}", key=f"example_{i}"):
+                psm_query = query
+                
+    # Process and display response
+    if psm_query:
+        response, relevant_docs = ask_claude_with_rag(psm_query)
+        
+        st.markdown("""
+            <div class='response-container'>
+                <h4>🤖 AI Assistant Response</h4>
+                <p>{}</p>
+            </div>
+        """.format(response), unsafe_allow_html=True)
+        
+        # Related Documentation
+        with st.expander("📚 Relevant Internal Documentation"):
+            st.dataframe(
+                relevant_docs[["question", "answer"]],
+                use_container_width=True,
+                column_config={
+                    "question": "Question",
+                    "answer": "Answer"
+                }
+            )
+        
+        # Update metrics
+        st.session_state.queries_handled += 1
+        
+        # Add to chat history
+        st.session_state.chat_history.append({
+            "query": psm_query,
+            "response": response
+        })
+
 # Tab 2: Escalation Analysis Section
 with tab2:
     st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
@@ -353,10 +543,8 @@ with tab2:
     
     with col1:
         st.metric("Total Interactions", "247")
-    
     with col2:
         st.metric("Successful Resolutions", "221 (89.5%)")
-    
     with col3:
         st.metric("Avg Response Time", "12 sec")
     
@@ -408,7 +596,7 @@ with tab2:
         """
         st.markdown(interaction_html, unsafe_allow_html=True)
 
-# Tab 3: Common Documentation + Interaction Insights
+# Tab 3: Knowledge Base & Interactions
 with tab3:
     st.markdown("### 📊 Knowledge Base & Interactions")
     
@@ -435,6 +623,7 @@ with tab3:
     
     # Recent Message History
     if st.session_state.message_history:
+        st.subheader("Recent Messages")
         for msg in reversed(st.session_state.message_history[-5:]):
             st.markdown(f"""
                 <div class='metric-card'>
