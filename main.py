@@ -587,7 +587,7 @@ with tab2:
                     padding: 3px 8px;
                     border-radius: 4px;
                 '>
-                    {interaction['status']}
+                    {interaction['status']} 
                 </span>
             </div>
             <p><strong>Type:</strong> {interaction['type']}</p>
