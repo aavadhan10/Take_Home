@@ -53,6 +53,8 @@ if 'messages' not in st.session_state:
     st.session_state.messages = []
 if 'chat_input' not in st.session_state:
     st.session_state.chat_input = ""
+if 'success_manager_request' not in st.session_state:
+    st.session_state.success_manager_request = False
 
 # Main chat interface with healthcare focus
 st.markdown("""
@@ -65,18 +67,27 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Enhanced quick action buttons with healthcare focus
-quick_actions = st.columns(4)
+quick_actions = st.columns(5)  # Increased to 5 columns to accommodate new button
 actions = [
     "📋 Patient Record Help",
     "💉 Treatment Protocols",
     "📱 Moxie App Support",
-    "📊 Practice Analytics"
+    "📊 Practice Analytics",
+    "🤝 Success Manager"  # New button for Success Manager
 ]
 
 for i, action in enumerate(actions):
     with quick_actions[i]:
         if st.button(action, use_container_width=True):
-            st.session_state.chat_input = f"I need help with {action}"
+            if action == "🤝 Success Manager":
+                # Set flag for Success Manager connection
+                st.session_state.success_manager_request = True
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": "A Moxie Provider Success Manager will contact you shortly. Please provide a brief description of your inquiry."
+                })
+            else:
+                st.session_state.chat_input = f"I need help with {action}"
 
 # Chat messages display
 chat_container = st.container()
@@ -107,8 +118,14 @@ with col2:
                 "content": chat_input
             })
             
-            # Simulate AI response
-            response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
+            # Check if this is a response to Success Manager request
+            if st.session_state.success_manager_request:
+                response = f"Thank you for your detailed message. Our Success Manager team will review your inquiry and reach out to you directly. Typical response time is within 1-2 business hours."
+                st.session_state.success_manager_request = False
+            else:
+                # Simulate AI response
+                response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
+            
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": response
