@@ -61,7 +61,7 @@ def retrieve_documents(query, top_k=3):
     top_k_indices = similarities.argsort()[-top_k:][::-1]
     return internal_docs_df.iloc[top_k_indices]
 
-# RAG with Claude
+# RAG with Claude 3.5 Sonnet
 def ask_claude_with_rag(query):
     if client is None:
         st.error("Anthropic client not initialized. Unable to generate response.")
@@ -84,7 +84,7 @@ def ask_claude_with_rag(query):
         """
         
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-3-sonnet-20240229",  # Updated to Claude 3.5 Sonnet
             max_tokens=500,
             messages=[{"role": "user", "content": full_prompt}]
         )
@@ -114,6 +114,38 @@ if 'escalations' not in st.session_state:
 st.title("🚀 Moxie AI Support Agent")
 st.markdown("### Empowering Provider Success Managers with AI-powered assistance")
 
+# Sidebar for Navigation and Metrics
+with st.sidebar:
+    st.header("🤖 AI Agent Dashboard")
+    
+    # Performance Metrics
+    st.subheader("📊 Performance Metrics")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Questions Answered", st.session_state.queries_handled)
+    with col2:
+        st.metric("Questions Escalated", st.session_state.queries_escalated)
+    
+    # Communication channel selection
+    st.subheader("📞 Communication Channel")
+    support_channel = st.radio(
+        "Select Channel",
+        ["Chat Support", "Email Response", "SMS Handling", "Help Center Ticket"],
+        key="support_channel"
+    )
+    st.write(f"Selected Channel: **{support_channel}**")
+
+    # Provider information lookup
+    st.subheader("🔍 Find Provider Information")
+    provider_data = {
+        "Provider 1": {"Email": "provider1@example.com", "Phone": "123-456-7890"},
+        "Provider 2": {"Email": "provider2@example.com", "Phone": "987-654-3210"},
+    }
+    provider_name = st.selectbox("Select Provider", list(provider_data.keys()))
+    if provider_name:
+        st.write(f"**Email:** {provider_data[provider_name]['Email']}")
+        st.write(f"**Phone:** {provider_data[provider_name]['Phone']}")
+
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["Support Assistant + Contact Provider", "Escalation Center", "Insights & Library"])
 
@@ -128,11 +160,20 @@ with tab1:
     example_queries = [
         "How do I update billing info?",
         "What are the marketing guidelines?",
-        "How do I handle patient data?"
+        "How do I handle patient data?",
+        "How do I reset my password?",
+        "What are the business hours for support?",
+        "How do I access my dashboard?",
+        "How do I update my contact information?",
+        "What are the legal requirements for marketing?",
+        "How do I handle patient complaints?",
+        "What financial reports do I need to submit?"
     ]
-    for col, query in zip(example_cols, example_queries):
-        if col.button(query):
-            psm_query = query
+    for i in range(0, len(example_queries), 3):
+        cols = st.columns(3)
+        for col, query in zip(cols, example_queries[i:i+3]):
+            if col.button(query):
+                psm_query = query
 
     # Query Processing
     if psm_query:
@@ -160,35 +201,52 @@ with tab1:
             st.markdown("### 🤖 Here’s what I found:")
             st.info(response)
             
-            # Escalation Buttons
+            # Escalation Button
             if needs_escalation:
-                with st.expander("🚨 Escalation Options"):
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        if st.button("Escalate to Compliance"):
-                            st.session_state.escalations[-1]["status"] = "Compliance"
-                            st.success("This has been escalated to the Compliance team!")
-                    with col2:
-                        if st.button("Escalate to Legal"):
-                            st.session_state.escalations[-1]["status"] = "Legal"
-                            st.success("This has been escalated to the Legal team!")
-                    with col3:
-                        if st.button("Escalate to Finance"):
-                            st.session_state.escalations[-1]["status"] = "Finance"
-                            st.success("This has been escalated to the Finance team!")
+                if st.button("🚨 Create Escalation"):
+                    st.session_state.escalations.append({
+                        "query": psm_query,
+                        "reason": escalation_reason,
+                        "status": "Pending"
+                    })
+                    st.success("Escalation created! Navigate to the Escalation Center to manage it.")
 
-            # Retrieved Documents
-            with st.expander("📚 Relevant Documentation"):
-                for idx, row in relevant_docs.iterrows():
-                    st.markdown(f"**{row['question']}**")
-                    st.write(row['answer'])
-                    st.markdown("---")
+    # Contact Provider Feature
+    st.header("📞 Contact Provider")
+    provider_message = st.text_area("Message to Provider", placeholder="Type your message to the provider...")
+    if st.button(f"Send via {support_channel}"):
+        st.success(f"Message sent to {provider_name} via {support_channel}!")
+        st.write(f"**Provider:** {provider_name}")
+        st.write(f"**Channel:** {support_channel}")
+        st.write(f"**Message:** {provider_message}")
+
+    # Reference Materials
+    st.header("📚 Reference Materials")
+    st.write("Access internal documentation and resources here.")
+    if not internal_docs_df.empty:
+        st.dataframe(internal_docs_df)
+    else:
+        st.warning("No reference materials found.")
 
 # Tab 2: Escalation Center
 with tab2:
     st.header("🚨 Escalation Center")
+    
+    # Create Escalation Manually
+    st.subheader("Create New Escalation")
+    escalation_query = st.text_input("Enter the query to escalate", placeholder="Type the query here...")
+    escalation_reason = st.selectbox("Reason for Escalation", ["Compliance", "Legal", "Finance", "Other"])
+    if st.button("Create Escalation"):
+        st.session_state.escalations.append({
+            "query": escalation_query,
+            "reason": escalation_reason,
+            "status": "Pending"
+        })
+        st.success("Escalation created successfully!")
+
+    # View Existing Escalations
+    st.subheader("Current Escalations")
     if st.session_state.escalations:
-        st.write("**Current Escalations:**")
         for idx, escalation in enumerate(st.session_state.escalations):
             with st.expander(f"Escalation {idx + 1}: {escalation['query']}"):
                 st.write(f"**Reason:** {escalation['reason']}")
@@ -200,14 +258,6 @@ with tab2:
 with tab3:
     st.header("📊 Insights & Library")
     
-    # Performance Metrics
-    st.subheader("Performance Metrics")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Questions Answered", st.session_state.queries_handled)
-    with col2:
-        st.metric("Questions Escalated", st.session_state.queries_escalated)
-    
     # Escalation Dashboard
     st.subheader("Escalation Dashboard")
     if st.session_state.escalations:
@@ -215,14 +265,6 @@ with tab3:
         st.dataframe(escalation_df)
     else:
         st.info("No escalations to display.")
-    
-    # Reference Materials
-    st.subheader("📚 Reference Materials")
-    st.write("Access internal documentation and resources here.")
-    if not internal_docs_df.empty:
-        st.dataframe(internal_docs_df)
-    else:
-        st.warning("No reference materials found.")
 
 # Footer
 st.markdown("---")
