@@ -191,7 +191,7 @@ if 'message_history' not in st.session_state:
 with st.sidebar:
     st.markdown("""
         <div style='text-align: center; margin-bottom: 20px;'>
-            <h1 style='color: #0f172a;'>🤖 AI Support</h1>
+            <h1 style='color: #0f172a;'>🤖 Contact Provider Externally</h1>
         </div>
     """, unsafe_allow_html=True)
     
