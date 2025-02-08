@@ -303,6 +303,13 @@ with tab1:
     
     # Search Section
     psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    
+    # Center the button with reduced width
+    col1, col2, col3 = st.columns([2,1,2])
+    with col2:
+        st.button("🔍 Search", type="primary")
+    # Search Section
+    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
     st.button("🔍 Search", type="primary", use_container_width=True)
     # Example Queries
     st.markdown("##### Quick Access Questions")
