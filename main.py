@@ -336,7 +336,7 @@ with tab1:
         """.format(response), unsafe_allow_html=True)
         
         # Related Documentation
-        with st.expander("📚 Related Documentation"):
+        with st.expander("📚 Relevant Internal Documentation"):
             st.dataframe(
                 relevant_docs[["question", "answer"]],
                 use_container_width=True,
