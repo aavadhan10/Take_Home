@@ -66,26 +66,29 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Enhanced quick action buttons with healthcare focus
-quick_actions = st.columns(5)  # Increased to 5 columns to accommodate new button
+# Quick actions with Success Manager button
+st.markdown("### Quick Actions")
+quick_actions = st.columns([1,1,1,1,1.5])  # Adjusted column widths
 actions = [
     "📋 Patient Record Help",
     "💉 Treatment Protocols",
     "📱 Moxie App Support",
     "📊 Practice Analytics",
-    "🤝 Success Manager"  # New button for Success Manager
+    "🤝 Connect with Success Manager"  # Modified button text
 ]
 
 for i, action in enumerate(actions):
     with quick_actions[i]:
         if st.button(action, use_container_width=True):
-            if action == "🤝 Success Manager":
+            if "Success Manager" in action:
                 # Set flag for Success Manager connection
                 st.session_state.success_manager_request = True
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": "A Moxie Provider Success Manager will contact you shortly. Please provide a brief description of your inquiry."
                 })
+                # Optionally, you could add a modal or more prominent UI element here
+                st.info("Success Manager connection request initiated. Please describe your inquiry in the chat.")
             else:
                 st.session_state.chat_input = f"I need help with {action}"
 
