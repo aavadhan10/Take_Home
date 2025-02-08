@@ -1,4 +1,5 @@
 import streamlit as st
+import time  # For simulating a delay
 
 # Page Configuration
 st.set_page_config(
@@ -164,8 +165,18 @@ if ask_clicked and chat_input.strip():
         "content": chat_input
     })
     
-    # Hardcoded result
-    response = "Searching through relevant documentation..."
+    # Simulate searching with a delay
+    with st.spinner("Searching for your answer..."):
+        time.sleep(2)  # Simulate a 2-second delay
+    
+    # Hardcoded response with a relevant document
+    response = """
+    Here’s a relevant document based on your query:
+
+    **Document Title:** Patient Record Management Guide  
+    **Summary:** This guide provides step-by-step instructions on how to manage patient records efficiently, including best practices for data entry, storage, and retrieval.  
+    **Link:** [View Document](#)
+    """
     
     # Add assistant response
     st.session_state.messages.append({
