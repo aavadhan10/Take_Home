@@ -7,7 +7,7 @@ from anthropic import Anthropic
 
 # Page Configuration
 st.set_page_config(
-    page_title="Moxie Provider Success Manager AI Support Agent",
+    page_title="Moxie AI Support Agent",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -91,7 +91,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load API key and initialize Anthropic client (your existing code)
+# Load API key and initialize Anthropic client
 try:
     api_key = st.secrets["anthropic_api_key"]
     client = Anthropic(api_key=api_key)
@@ -100,7 +100,7 @@ except Exception as e:
     api_key = None
     client = None
 
-# Your existing embedding and model functions
+# Embedding and model functions
 def mean_pooling(model_output, attention_mask):
     token_embeddings = model_output[0]
     input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
@@ -114,7 +114,7 @@ def load_embedding_model():
 
 tokenizer, model = load_embedding_model()
 
-# Load and prepare documents (your existing functions)
+# Load and prepare documents
 @st.cache_data
 def load_docs():
     try:
@@ -179,6 +179,8 @@ if 'escalations' not in st.session_state:
     st.session_state.escalations = []
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
+if 'message_history' not in st.session_state:
+    st.session_state.message_history = []
 
 # Enhanced Sidebar
 with st.sidebar:
@@ -205,7 +207,75 @@ with st.sidebar:
                 <h2 style='color: #ea580c; margin: 0;'>{}</h2>
             </div>
         """.format(st.session_state.queries_escalated), unsafe_allow_html=True)
+
+# Main Content Area
+st.markdown("""
+    <div style='text-align: center; padding: 20px 0;'>
+        <h1>🚀 Moxie AI Support Agent</h1>
+        <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# Create tabs with enhanced styling
+tab1, tab2, tab3 = st.tabs([
+    "🔍 AI Support Question Assistant",
+    "🚨 Escalation Center",
+    "📊 Common Documentation + Interaction Insights"
+])
+
+# Tab 1: AI Support Question Assistant
+with tab1:
+    # Search Section
+    st.markdown("### How can we help you today?")
+    query_col1, query_col2 = st.columns([4,1])
+    with query_col1:
+        psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    with query_col2:
+        search_button = st.button("🔍 Search", use_container_width=True)
     
+    # Example Queries
+    st.markdown("##### Quick Access Questions")
+    example_queries = [
+        "How do I update billing info?",
+        "What are the marketing guidelines?",
+        "How do I handle patient data?",
+        "Reset password",
+        "Business hours",
+        "Access dashboard"
+    ]
+    
+    example_cols = st.columns(3)
+    for i, query in enumerate(example_queries):
+        with example_cols[i % 3]:
+            if st.button(f"💡 {query}", key=f"example_{i}"):
+                psm_query = query
+
+    # Process Query and Display Response
+    if psm_query:
+        response, relevant_docs = ask_claude_with_rag(psm_query)
+        
+        # Display Response
+        st.markdown("""
+            <div class='response-container'>
+                <h4>🤖 AI Assistant Response</h4>
+                <p>{}</p>
+            </div>
+        """.format(response), unsafe_allow_html=True)
+        
+        # Related Documentation
+        with st.expander("📚 Related Documentation"):
+            st.dataframe(
+                relevant_docs[["question", "answer"]],
+                use_container_width=True,
+                column_config={
+                    "question": "Question",
+                    "answer": "Answer"
+                }
+            )
+        
+        # Update metrics
+        st.session_state.queries_handled += 1
+
     # Provider Contact Section
     st.markdown("### 📱 Contact Provider")
     
@@ -271,9 +341,6 @@ with st.sidebar:
                 st.success(f"Help Center ticket created for {selected_provider}")
 
         # Show any sent messages in chat history
-        if 'message_history' not in st.session_state:
-            st.session_state.message_history = []
-            
         if message and st.button("Send Message", type="primary"):
             st.session_state.message_history.append({
                 "provider": selected_provider,
@@ -295,87 +362,7 @@ with st.sidebar:
                         <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
                     </div>
                 """, unsafe_allow_html=True)
-
-# Main Content Area
-st.markdown("""
-    <div style='text-align: center; padding: 20px 0;'>
-        <h1>🚀 Moxie AI Support Agent</h1>
-        <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance (Powered by Claude Sonnet 3.5) </p>
-    </div>
-""", unsafe_allow_html=True)
-
-# Create tabs with enhanced styling
-tab1, tab2, tab3 = st.tabs([
-    "🔍 AI Support Question Assistant",
-    "🚨 Escalation Center",
-    "📊 Common Documentation + Interaction Insights"
-])
-
-# Tab 1: AI Support Question Assistan
-with tab1:
-    # Search Section
-    st.markdown("### How can we help you today?")
-    query_col1, query_col2 = st.columns([4,1])
-    with query_col1:
-        psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
-    with query_col2:
-        search_button = st.button("🔍 Search", use_container_width=True)
-    
-    # Example Queries
-    st.markdown("##### Quick Access Questions")
-    example_queries = [
-        "How do I update billing info?",
-        "What are the marketing guidelines?",
-        "How do I handle patient data?",
-        "Reset password",
-        "Business hours",
-        "Access dashboard"
-    ]
-    
-    example_cols = st.columns(3)
-    for i, query in enumerate(example_queries):
-        with example_cols[i % 3]:
-            if st.button(f"💡 {query}", key=f"example_{i}"):
-                psm_query = query
-
-    # Process Query and Display Response
-    if psm_query:
-        response, relevant_docs = ask_claude_with_rag(psm_query)
-        
-        # Display Response
-        st.markdown("""
-            <div class='response-container'>
-                <h4>🤖 AI Assistant Response</h4>
-                <p>{}</p>
-            </div>
-        """.format(response), unsafe_allow_html=True)
-        
-        # Related Documentation
-        with st.expander("📚 Related Documentation"):
-            st.dataframe(
-                relevant_docs[["question", "answer"]],
-                use_container_width=True,
-                column_config={
-                    "question": "Question",
-                    "answer": "Answer"
-                }
-            )
-        
-        # Update metrics
-        st.session_state.queries_handled += 1
-        
-        # Add to chat history
-        st.session_state.chat_history.append({
-            "query": psm_query,
-            "response": response,
-            "channel": channels[selected_channel]
-        })
-
-# Tab 2: Escalation Center
-with tab2:
-    st.markdown("### 🚨 Escalation Management")
-    
-    # Create New Escalation
+         # Create New Escalation
     with st.expander("Create New Escalation", expanded=True):
         esc_col1, esc_col2 = st.columns([2,1])
         with esc_col1:
@@ -413,9 +400,9 @@ with tab2:
     else:
         st.info("No active escalations")
 
-# Tab 3: Insights
+# Tab 3: Common Documentation + Interaction Insights
 with tab3:
-    st.markdown("### 📊 Performance Insights")
+    st.markdown("### 📊 Knowledge Base & Interactions")
     
     # Relevant Documents Section
     st.subheader("📚 Internal Documentation")
@@ -444,13 +431,12 @@ with tab3:
         for chat in st.session_state.chat_history[-5:]:  # Show last 5 interactions
             st.markdown(f"""
                 <div class='metric-card'>
-                    <p><strong>Channel:</strong> {chat['channel']}</p>
-                    <p><strong>Query:</strong> {chat['query']}</p>
+                    <p><strong>Question:</strong> {chat['query']}</p>
                     <p><strong>Response:</strong> {chat['response'][:200]}...</p>
                 </div>
             """, unsafe_allow_html=True)
     
-    # Escalation Metrics
+    # Escalation Analytics
     if st.session_state.escalations:
         st.subheader("Escalation Analytics")
         escalation_df = pd.DataFrame(st.session_state.escalations)
@@ -472,3 +458,4 @@ st.markdown("""
         Built with ❤️ using Claude 3.5 Sonnet, Streamlit, and RAG
     </div>
 """, unsafe_allow_html=True)
+    
