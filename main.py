@@ -292,7 +292,7 @@ st.markdown("""
 # Create tabs with enhanced styling
 tab1, tab2, tab3 = st.tabs([
     "🔍 AI Support Question Assistant",
-    "🚨 Escalation Center",
+    "🚨 Response Accuracy Tracker & Escalation Center",
     "📊 Documentation Search + Interaction Insights"
 ])
 
@@ -463,161 +463,138 @@ def analyze_potential_escalation(query):
     
     return escalation_analysis
 
-# Modify the existing Escalation Tab (replace the entire tab2 content)
+# Tab 2: Response Accuracy Tracker & Escalation Center
 with tab2:
-    st.markdown("""
-        <div style='text-align: center; margin-bottom: 20px;'>
-            <h2 style='color: #0f172a;'>🚨 Escalation Risk Intelligence</h2>
-            <p style='color: #64748b;'>Proactive Risk Assessment and Management</p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("### 🚨 Escalation Risk Analysis")
     
     # Escalation Analysis Section
     with st.expander("Analyze Potential Escalation", expanded=True):
-        # Custom styling for the expander
-        st.markdown("""
-        <style>
-        .stExpander {
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            background-color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .stExpander > div > div > div {
-            padding: 15px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # Query Input with Enhanced Styling
         escalation_query = st.text_area(
             "Enter Incident Details", 
             placeholder="Describe the concern or incident in comprehensive detail...",
-            height=150,
-            help="Provide a clear, detailed description to enable accurate risk analysis"
+            height=150
         )
         
-        # Analyze Button with Custom Styling
-        col1, col2 = st.columns([3,1])
-        with col1:
-            analyze_button = st.button("🔍 Analyze Escalation Potential", type="primary", use_container_width=True)
-        
-        # Analyze Potential Escalation
-        if analyze_button and escalation_query:
-            # Perform detailed escalation analysis
-            escalation_analysis = analyze_potential_escalation(escalation_query)
-            
-            # Risk Level Color Mapping
-            risk_color_map = {
-                "Low": "#10b981",     # Emerald Green
-                "Medium": "#f59e0b",  # Amber
-                "High": "#ef4444"     # Red
-            }
-            
-            # Risk Level Display
-            st.markdown(f"""
-            <div class='metric-card' style='background-color: {risk_color_map.get(escalation_analysis["risk_level"], "#64748b")}; color: white; padding: 15px; border-radius: 10px;'>
-                <div style='display: flex; justify-content: space-between; align-items: center;'>
-                    <div>
-                        <h3 style='margin: 0;'>Risk Level: {escalation_analysis["risk_level"]}</h3>
-                        <p style='margin: 5px 0 0;'>Escalation Potential: {escalation_analysis["potential_escalation"]}</p>
-                    </div>
-                    <div style='font-size: 2em;'>
-                        {'🚨' if escalation_analysis["risk_level"] == "High" else '⚠️' if escalation_analysis["risk_level"] == "Medium" else '✅'}
+        if st.button("🔍 Analyze Escalation Potential", type="primary"):
+            if escalation_query:
+                # Hardcoded risk analysis
+                risk_levels = {
+                    "Low Risk": {
+                        "color": "#10b981",
+                        "icon": "✅",
+                        "description": "No immediate escalation needed"
+                    },
+                    "Medium Risk": {
+                        "color": "#f59e0b", 
+                        "icon": "⚠️",
+                        "description": "Review recommended"
+                    },
+                    "High Risk": {
+                        "color": "#ef4444", 
+                        "icon": "🚨",
+                        "description": "Immediate action required"
+                    }
+                }
+                
+                # Simple risk determination logic
+                keywords = {
+                    "High Risk": ["legal", "hipaa", "violation", "patient safety", "lawsuit"],
+                    "Medium Risk": ["concern", "potential issue", "review needed"]
+                }
+                
+                # Determine risk level
+                risk_level = "Low Risk"
+                for level, words in keywords.items():
+                    if any(word in escalation_query.lower() for word in words):
+                        risk_level = level
+                        break
+                
+                # Display risk assessment
+                current_risk = risk_levels[risk_level]
+                st.markdown(f"""
+                <div style='
+                    background-color: {current_risk["color"]}; 
+                    color: white; 
+                    padding: 15px; 
+                    border-radius: 10px;
+                '>
+                    <div style='display: flex; justify-content: space-between; align-items: center;'>
+                        <div>
+                            <h3 style='margin: 0;'>Risk Level: {risk_level}</h3>
+                            <p style='margin: 5px 0 0;'>{current_risk["description"]}</p>
+                        </div>
+                        <div style='font-size: 2em;'>
+                            {current_risk["icon"]}
+                        </div>
                     </div>
                 </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("Please enter details for escalation analysis")
+    
+    # Performance Metrics
+    st.markdown("### 📊 Interaction Performance")
+    
+    # Metrics columns
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Total Interactions", "247")
+    
+    with col2:
+        st.metric("Successful Resolutions", "221 (89.5%)")
+    
+    with col3:
+        st.metric("Avg Response Time", "12 sec")
+    
+    # Interaction History
+    st.subheader("Interaction Log")
+    
+    interactions = [
+        {
+            "timestamp": "2024-02-05 10:23",
+            "type": "Billing Query",
+            "query": "How to update patient billing?",
+            "status": "Resolved",
+            "accuracy": "95%"
+        },
+        {
+            "timestamp": "2024-02-05 11:45",
+            "type": "Compliance Issue",
+            "query": "HIPAA data transfer concern",
+            "status": "Escalated",
+            "accuracy": "100%"
+        }
+    ]
+    
+    for interaction in interactions:
+        st.markdown(f"""
+        <div style='
+            background-color: #f8fafc; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 10px;
+        '>
+            <div style='display: flex; justify-content: space-between;'>
+                <span>{interaction['timestamp']}</span>
+                <span style='
+                    background-color: {
+                        "Resolved": "#10b981",
+                        "Escalated": "#ef4444"
+                    }.get(interaction["status"], "#f59e0b")};
+                    color: white;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                '>
+                    {interaction['status']}
+                </span>
             </div>
-            """, unsafe_allow_html=True)
-            
-            # Detailed Risk Breakdown
-            st.subheader("🔬 Comprehensive Risk Assessment")
-            risk_cols = st.columns(4)
-            risk_categories = escalation_analysis["detailed_assessment"]
-            
-            for i, (category, score) in enumerate(risk_categories.items()):
-                with risk_cols[i]:
-                    # Stylized metric card
-                    st.markdown(f"""
-                    <div class='metric-card' style='
-                        background-color: #f8fafc; 
-                        border: 1px solid #e2e8f0; 
-                        border-radius: 8px; 
-                        padding: 10px; 
-                        text-align: center;
-                    '>
-                        <p style='color: #64748b; margin: 0 0 5px 0;'>{category}</p>
-                        <h3 style='color: #0f172a; margin: 0;'>{score}</h3>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            # Recommended Actions
-            if escalation_analysis["potential_escalation"]:
-                st.subheader("🚀 Recommended Next Steps")
-                
-                # Custom styled action items
-                actions_html = "".join([
-                    f"""
-                    <div style='
-                        background-color: #f1f5f9; 
-                        border-left: 4px solid #0ea5e9; 
-                        padding: 10px; 
-                        margin-bottom: 10px; 
-                        border-radius: 0 8px 8px 0;
-                    '>
-                        {action}
-                    </div>
-                    """ for action in escalation_analysis.get("recommended_actions", [])
-                ])
-                
-                st.markdown(actions_html, unsafe_allow_html=True)
-                
-                # Optional Escalation Creation
-                create_escalation = st.checkbox(
-                    "Create Formal Escalation", 
-                    help="Convert this risk analysis into a formal escalation ticket"
-                )
-                
-                if create_escalation:
-                    # Prepare escalation details
-                    escalation_entry = {
-                        "query": escalation_query,
-                        "risk_level": escalation_analysis["risk_level"],
-                        "risk_score": escalation_analysis["risk_score"],
-                        "recommended_actions": escalation_analysis.get("recommended_actions", []),
-                        "status": "Pending Review",
-                        "timestamp": pd.Timestamp.now()
-                    }
-                    
-                    # Add to escalations
-                    st.session_state.escalations.append(escalation_entry)
-                    st.session_state.queries_escalated += 1
-                    
-                    st.success("Escalation created based on comprehensive risk analysis")
-        elif analyze_button:
-            st.warning("Please provide details for escalation analysis")
-    
-    # Previous Escalations Section
-    st.subheader("📋 Escalation History")
-    
-    if st.session_state.escalations:
-        # Custom DataFrame styling
-        escalation_df = pd.DataFrame(st.session_state.escalations)
-        
-        # Enhance column display
-        st.dataframe(
-            escalation_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "query": st.column_config.TextColumn("Incident Details"),
-                "risk_level": st.column_config.TextColumn("Risk Level"),
-                "status": st.column_config.TextColumn("Status"),
-                "timestamp": st.column_config.DateColumn("Logged At")
-            }
-        )
-    else:
-        st.info("No previous escalations")
-
+            <p><strong>Type:</strong> {interaction['type']}</p>
+            <p><strong>Query:</strong> {interaction['query']}</p>
+            <p>Accuracy: {interaction['accuracy']}</p>
+        </div>
+        """, unsafe_allow_html=True)
 # Tab 3: Common Documentation + Interaction Insights
 with tab3:
     st.markdown("### 📊 Knowledge Base & Interactions")
