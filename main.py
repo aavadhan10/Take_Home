@@ -88,6 +88,11 @@ st.markdown("""
     .channel-select:hover {
         background-color: #f1f5f9;
     }
+    
+    /* Sidebar Styling */
+    .css-1d391kg {
+        padding: 1rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -207,6 +212,74 @@ with st.sidebar:
                 <h2 style='color: #ea580c; margin: 0;'>{}</h2>
             </div>
         """.format(st.session_state.queries_escalated), unsafe_allow_html=True)
+    
+    # Provider Contact Section
+    st.markdown("### 📱 Contact Provider")
+    
+    # Sample provider data
+    provider_data = {
+        "Provider 1": {"email": "provider1@moxie.com", "phone": "123-456-7890", "preferred": "email"},
+        "Provider 2": {"email": "provider2@moxie.com", "phone": "987-654-3210", "preferred": "sms"},
+        "Provider 3": {"email": "provider3@moxie.com", "phone": "555-123-4567", "preferred": "chat"}
+    }
+    
+    selected_provider = st.selectbox("Select Provider", list(provider_data.keys()))
+    
+    if selected_provider:
+        st.markdown("""
+            <div class='metric-card'>
+                <p><strong>📧 Email:</strong> {}</p>
+                <p><strong>📱 Phone:</strong> {}</p>
+                <p><strong>⭐ Preferred Channel:</strong> {}</p>
+            </div>
+        """.format(
+            provider_data[selected_provider]["email"],
+            provider_data[selected_provider]["phone"],
+            provider_data[selected_provider]["preferred"].upper()
+        ), unsafe_allow_html=True)
+
+        st.markdown("### 📤 Send Message")
+        
+        selected_channel = st.radio(
+            "Select Communication Channel:",
+            ["💬 Chat Support", "📧 Email", "📱 SMS", "❓ Help Center"],
+            key="channel_select",
+        )
+
+        # Message composition
+        message = st.text_area("Message:", placeholder="Type your message here...", height=100)
+        
+        # Channel-specific inputs
+        if selected_channel == "💬 Chat Support":
+            if st.button("Start Chat Session", type="primary"):
+                st.success(f"Opening chat session with {selected_provider}...")
+                
+        elif selected_channel == "📧 Email":
+            subject = st.text_input("Subject:", placeholder="Enter email subject")
+            if st.button("Send Email", type="primary"):
+                st.success(f"Email sent to {provider_data[selected_provider]['email']}")
+                
+        elif selected_channel == "📱 SMS":
+            if st.button("Send SMS", type="primary"):
+                st.success(f"SMS sent to {provider_data[selected_provider]['phone']}")
+                
+        elif selected_channel == "❓ Help Center":
+            ticket_priority = st.select_slider(
+                "Ticket Priority",
+                options=["Low", "Medium", "High", "Urgent"]
+            )
+            if st.button("Create Help Center Ticket", type="primary"):
+                st.success(f"Help Center ticket created for {selected_provider}")
+
+        # Send Message Button
+        if message and st.button("Send Message", type="primary"):
+            st.session_state.message_history.append({
+                "provider": selected_provider,
+                "channel": selected_channel,
+                "message": message,
+                "timestamp": pd.Timestamp.now()
+            })
+            st.success(f"Message sent to {selected_provider} via {selected_channel}")
 
 # Main Content Area
 st.markdown("""
@@ -275,94 +348,18 @@ with tab1:
         
         # Update metrics
         st.session_state.queries_handled += 1
-
-    # Provider Contact Section
-    st.markdown("### 📱 Contact Provider")
-    
-    # Sample provider data - in production, this would come from your database
-    provider_data = {
-        "Provider 1": {"email": "provider1@moxie.com", "phone": "123-456-7890", "preferred": "email"},
-        "Provider 2": {"email": "provider2@moxie.com", "phone": "987-654-3210", "preferred": "sms"},
-        "Provider 3": {"email": "provider3@moxie.com", "phone": "555-123-4567", "preferred": "chat"}
-    }
-    
-    selected_provider = st.selectbox("Select Provider", list(provider_data.keys()))
-    
-    if selected_provider:
-        # Provider Info Card
-        st.markdown("""
-            <div class='metric-card'>
-                <p><strong>📧 Email:</strong> {}</p>
-                <p><strong>📱 Phone:</strong> {}</p>
-                <p><strong>⭐ Preferred Channel:</strong> {}</p>
-            </div>
-        """.format(
-            provider_data[selected_provider]["email"],
-            provider_data[selected_provider]["phone"],
-            provider_data[selected_provider]["preferred"].upper()
-        ), unsafe_allow_html=True)
-
-        # Message Composition Section
-        st.markdown("### 📤 Send Message")
         
-        # Channel Selection with Visual Buttons
-        channels_col1, channels_col2 = st.columns(2)
-        with channels_col1:
-            selected_channel = st.radio(
-                "Select Communication Channel:",
-                ["💬 Chat Support", "📧 Email", "📱 SMS", "❓ Help Center"],
-                key="channel_select",
-                horizontal=True
-            )
-
-        # Message composition based on channel
-        message = st.text_area("Message:", placeholder="Type your message here...", height=100)
-        
-        # Channel-specific inputs and buttons
-        if selected_channel == "💬 Chat Support":
-            if st.button("Start Chat Session", type="primary"):
-                st.success(f"Opening chat session with {selected_provider}...")
-                
-        elif selected_channel == "📧 Email":
-            subject = st.text_input("Subject:", placeholder="Enter email subject")
-            if st.button("Send Email", type="primary"):
-                st.success(f"Email sent to {provider_data[selected_provider]['email']}")
-                
-        elif selected_channel == "📱 SMS":
-            if st.button("Send SMS", type="primary"):
-                st.success(f"SMS sent to {provider_data[selected_provider]['phone']}")
-                
-        elif selected_channel == "❓ Help Center":
-            ticket_priority = st.select_slider(
-                "Ticket Priority",
-                options=["Low", "Medium", "High", "Urgent"]
-            )
-            if st.button("Create Help Center Ticket", type="primary"):
-                st.success(f"Help Center ticket created for {selected_provider}")
-
-        # Show any sent messages in chat history
-        if message and st.button("Send Message", type="primary"):
-            st.session_state.message_history.append({
-                "provider": selected_provider,
-                "channel": selected_channel,
-                "message": message,
-                "timestamp": pd.Timestamp.now()
-            })
-            st.success(f"Message sent to {selected_provider} via {selected_channel}")
-            
-        # Display Recent Messages
-        if st.session_state.message_history:
-            st.markdown("### 📨 Recent Messages")
-            for msg in reversed(st.session_state.message_history[-5:]):
-                st.markdown(f"""
-                    <div style='border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 10px;'>
-                        <p><strong>To:</strong> {msg['provider']}</p>
-                        <p><strong>Channel:</strong> {msg['channel']}</p>
-                        <p><strong>Message:</strong> {msg['message']}</p>
-                        <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
-                    </div>
-                """, unsafe_allow_html=True)
-         # Create New Escalation
+        # Add to chat history
+        st.session_state.chat_history.append({
+            "query": psm_query,
+            "response": response,
+            "channel": selected_channel
+        })
+    # Tab 2: Escalation Center
+with tab2:
+    st.markdown("### 🚨 Escalation Management")
+    
+    # Create New Escalation
     with st.expander("Create New Escalation", expanded=True):
         esc_col1, esc_col2 = st.columns([2,1])
         with esc_col1:
@@ -425,8 +422,21 @@ with tab3:
             }
         )
     
+    # Recent Message History
+    st.subheader("Recent Messages")
+    if st.session_state.message_history:
+        for msg in reversed(st.session_state.message_history[-5:]):
+            st.markdown(f"""
+                <div class='metric-card'>
+                    <p><strong>To:</strong> {msg['provider']}</p>
+                    <p><strong>Channel:</strong> {msg['channel']}</p>
+                    <p><strong>Message:</strong> {msg['message']}</p>
+                    <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
+                </div>
+            """, unsafe_allow_html=True)
+    
     # Chat History
-    st.subheader("Recent Interactions")
+    st.subheader("Recent AI Interactions")
     if st.session_state.chat_history:
         for chat in st.session_state.chat_history[-5:]:  # Show last 5 interactions
             st.markdown(f"""
@@ -458,4 +468,3 @@ st.markdown("""
         Built with ❤️ using Claude 3.5 Sonnet, Streamlit, and RAG
     </div>
 """, unsafe_allow_html=True)
-    
