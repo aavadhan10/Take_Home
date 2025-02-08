@@ -74,7 +74,7 @@ initialize_session_state()
 st.markdown("""
     <div class='chat-container'>
         <div style='text-align: center; margin-bottom: 2rem;'>
-            <h1>Welcome to Moxie Support: Provider View</h1>
+            <h1>Welcome to Moxie Support</h1>
             <p style='color: #64748b;'>Get instant help with patient care, documentation, and practice management</p>
         </div>
     </div>
@@ -116,28 +116,23 @@ with col1:
     )
 
 with col2:
-    # Send button
-    send_clicked = st.button("Send", type="primary", use_container_width=True, key="send_primary_button")
+    # Ask button
+    ask_clicked = st.button("Ask", type="primary", use_container_width=True, key="ask_primary_button")
 
 with col3:
     # Success Manager button
-    success_manager_clicked = st.button("Success Manager", type="secondary", use_container_width=True, key="success_manager_primary_button")
+    success_manager_clicked = st.button("Connect with a Success Manager", type="secondary", use_container_width=True, key="success_manager_primary_button")
 
 # Handle button clicks
-if send_clicked and chat_input.strip():
+if ask_clicked and chat_input.strip():
     # Add user message
     st.session_state.messages.append({
         "role": "user",
         "content": chat_input
     })
     
-    # Check if in success manager mode
-    if st.session_state.success_manager_mode:
-        response = "Thank you for your message. A Success Manager will review your inquiry and reach out to you directly within 1-2 business hours."
-        st.session_state.success_manager_mode = False
-    else:
-        # Simulate AI response
-        response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
+    # Hardcoded result
+    response = "Here is a result based on your query. This is a sample response generated to demonstrate the functionality of the support system."
     
     # Add assistant response
     st.session_state.messages.append({
@@ -151,6 +146,11 @@ if send_clicked and chat_input.strip():
 if success_manager_clicked:
     # Set success manager mode
     st.session_state.success_manager_mode = True
+    
+    # Show informative message
+    st.info("A Moxie Provider Success Manager will be available to assist you shortly. Please describe your inquiry in detail.")
+    
+    # Add message to chat log
     st.session_state.messages.append({
         "role": "assistant",
         "content": "A Moxie Provider Success Manager will be available to assist you shortly. Please describe your inquiry in detail."
