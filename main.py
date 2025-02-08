@@ -298,7 +298,7 @@ tab1, tab2, tab3 = st.tabs([
 
 # Tab 1: AI Support Question Assistant
 with tab1:
-    st.markdown("### Type in you question below")
+    st.markdown("### Type in your questions below")
     st.info("Answering common provider questions from internal documentation.")
     
     # Search Section
