@@ -299,7 +299,7 @@ tab1, tab2, tab3 = st.tabs([
 # Tab 1: AI Support Question Assistant
 with tab1:
     # Search Section
-    st.markdown("### Enter your providers question here ")
+    st.markdown("### How can we help you today?")
     query_col1, query_col2 = st.columns([4,1])
     with query_col1:
         psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
