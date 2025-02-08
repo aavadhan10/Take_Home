@@ -101,7 +101,7 @@ with col1:
         key="chat_input_field"
     )
 with col2:
-    if st.button("Send", type="primary", use_container_width=True):
+    if st.button("Send a message to a Success Manager", type="primary", use_container_width=True):
         if chat_input:
             # Add user message
             st.session_state.messages.append({
@@ -126,7 +126,7 @@ with col2:
             st.session_state.chat_input = ""
             st.experimental_rerun()
 with col3:
-    if st.button("Connect with Success Manager", type="secondary", use_container_width=True):
+    if st.button("Connect with Success Manager Immediately", type="secondary", use_container_width=True):
         # Set success manager mode
         st.session_state.success_manager_mode = True
         st.session_state.messages.append({
