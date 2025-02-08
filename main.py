@@ -7,7 +7,7 @@ from anthropic import Anthropic
 
 # Page Configuration
 st.set_page_config(
-    page_title="Moxie AI Support Agent Demo",
+    page_title="Moxie AI Agent PSM Demo",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
