@@ -511,7 +511,7 @@ with tab2:
                 
                 # Display risk assessment
                 current_risk = risk_levels[risk_level]
-                st.markdown(f"""
+                risk_html = f"""
                 <div style='
                     background-color: {current_risk["color"]}; 
                     color: white; 
@@ -528,7 +528,8 @@ with tab2:
                         </div>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """
+                st.markdown(risk_html, unsafe_allow_html=True)
             else:
                 st.warning("Please enter details for escalation analysis")
     
@@ -568,7 +569,8 @@ with tab2:
     ]
     
     for interaction in interactions:
-        st.markdown(f"""
+        status_color = "#10b981" if interaction["status"] == "Resolved" else "#ef4444"
+        interaction_html = f"""
         <div style='
             background-color: #f8fafc; 
             border: 1px solid #e2e8f0; 
@@ -579,23 +581,20 @@ with tab2:
             <div style='display: flex; justify-content: space-between;'>
                 <span>{interaction['timestamp']}</span>
                 <span style='
-                    background-color: {
-                        "Resolved": "#10b981",
-                        "Escalated": "#ef4444"
-                    }.get(interaction["status"], "#f59e0b")};
+                    background-color: {status_color};
                     color: white;
                     padding: 3px 8px;
                     border-radius: 4px;
                 '>
-                    {interaction['status']} 
+                    {interaction['status']}
                 </span>
             </div>
             <p><strong>Type:</strong> {interaction['type']}</p>
             <p><strong>Query:</strong> {interaction['query']}</p>
             <p>Accuracy: {interaction['accuracy']}</p>
         </div>
-        """, unsafe_allow_html=True)
-        
+        """
+        st.markdown(interaction_html, unsafe_allow_html=True)
 # Tab 3: Common Documentation + Interaction Insights
 with tab3:
     st.markdown("### 📊 Knowledge Base & Interactions")
