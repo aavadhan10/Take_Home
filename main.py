@@ -423,6 +423,48 @@ def determine_response_strategy(query, confidence_metrics):
 with tab2:
     st.markdown("### 🚨 Intelligent Response Management")
     
+    # Ensure session state variables are initialized with some default data
+    if 'escalations' not in st.session_state or not st.session_state.escalations:
+        st.session_state.escalations = [
+            {
+                "query": "Patient data privacy concern",
+                "reason": "Compliance, Legal",
+                "priority": "High",
+                "status": "Pending",
+                "additional_context": "Potential HIPAA violation reported",
+                "timestamp": pd.Timestamp.now() - pd.Timedelta(days=2)
+            },
+            {
+                "query": "Billing system integration issue",
+                "reason": "Technical",
+                "priority": "Medium",
+                "status": "In Progress",
+                "additional_context": "Requires IT department review",
+                "timestamp": pd.Timestamp.now() - pd.Timedelta(days=1)
+            }
+        ]
+    
+    # Ensure AI confidence log has some default data
+    if 'ai_confidence_log' not in st.session_state or not st.session_state.ai_confidence_log:
+        st.session_state.ai_confidence_log = [
+            {
+                "query": "How to update patient records?",
+                "confidence_score": 85.5,
+                "confidence_level": "High",
+                "avg_similarity": 78.2,
+                "doc_coverage": 65.3,
+                "timestamp": pd.Timestamp.now() - pd.Timedelta(days=1)
+            },
+            {
+                "query": "Complex billing question",
+                "confidence_score": 42.7,
+                "confidence_level": "Low",
+                "avg_similarity": 35.6,
+                "doc_coverage": 40.1,
+                "timestamp": pd.Timestamp.now() - pd.Timedelta(hours=12)
+            }
+        ]
+    
     # Tabs for different views
     esc_tabs = st.tabs([
         "📋 Response Strategy Analyzer", 
@@ -444,52 +486,63 @@ with tab2:
             "level": st.selectbox("Mock Confidence Level", ["Low", "Medium", "High"], index=1)
         }
         
-        # Analyze and display response strategy
-        if query:
-            response_strategy = determine_response_strategy(query, mock_confidence_metrics)
+        # Create Escalation Section
+        st.markdown("### 🚨 Create New Escalation")
+        esc_col1, esc_col2 = st.columns([2,1])
+        with esc_col1:
+            escalation_query = st.text_input("Query to Escalate", 
+                                             value=query if query else "")
+            escalation_reason = st.multiselect(
+                "Reason(s)",
+                ["Compliance", "Legal", "Technical", "AI Low Confidence", "Complex Query", "Other"]
+            )
+            additional_context = st.text_area("Additional Context", height=100)
+        with esc_col2:
+            priority = st.select_slider(
+                "Priority",
+                ["Low", "Medium", "High", "Urgent"]
+            )
             
-            # Visualization of response strategy
-            st.markdown(f"""
-            ### 🎯 Response Strategy Breakdown
-            
-            **Recommended Action**: 🏷️ **{response_strategy['strategy']}**
-            
-            #### 🔍 Reasoning:
-            {chr(10).join(f"- {reason}" for reason in response_strategy['reason'] if reason)}
-            
-            #### 📊 Detailed Metrics:
-            - **Sentiment Score**: {analyze_sentiment(query):.2f}
-            - **Confidence Score**: {mock_confidence_metrics['score']}%
-            - **Confidence Level**: {mock_confidence_metrics['level']}
-            """)
-            
-            # Conditional escalation recommendation
-            if response_strategy['strategy'] == "Escalate":
-                st.warning("""
-                🚨 **Escalation Recommended**
-                - Query requires human expert intervention
-                - AI confidence is low or sentiment is highly negative
+            # Analyze and display response strategy if query exists
+            if query:
+                response_strategy = determine_response_strategy(query, mock_confidence_metrics)
+                
+                # Visualization of response strategy
+                st.markdown(f"""
+                ### 🎯 Response Strategy Breakdown
+                
+                **Recommended Action**: 🏷️ **{response_strategy['strategy']}**
+                
+                #### 🔍 Reasoning:
+                {chr(10).join(f"- {reason}" for reason in response_strategy['reason'] if reason)}
+                
+                #### 📊 Detailed Metrics:
+                - **Sentiment Score**: {analyze_sentiment(query):.2f}
+                - **Confidence Score**: {mock_confidence_metrics['score']}%
+                - **Confidence Level**: {mock_confidence_metrics['level']}
                 """)
-            elif response_strategy['strategy'] == "Partial Response":
-                st.info("""
-                🟠 **Partial Autonomous Response**
-                - Provide initial guidance
-                - Flag for potential follow-up
-                """)
-            else:
-                st.success("""
-                ✅ **Autonomous Response**
-                - AI can handle the query independently
-                - High confidence and positive/neutral sentiment
-                """)
+            
+            # Submit Escalation Button
+            if st.button("🚨 Create Escalation", type="primary"):
+                escalation_entry = {
+                    "query": escalation_query,
+                    "reason": ", ".join(escalation_reason) if escalation_reason else "Unspecified",
+                    "priority": priority,
+                    "status": "Pending",
+                    "additional_context": additional_context,
+                    "timestamp": pd.Timestamp.now()
+                }
+                st.session_state.escalations.append(escalation_entry)
+                st.session_state.queries_escalated += 1
+                st.success("Escalation created successfully!")
     
-    # Rest of the existing escalation tabs remain the same...
-    # (Escalation Log and AI Confidence Analytics tabs)
+    # Escalation Log Tab
     with esc_tabs[1]:
-        # Existing Escalation Log implementation
         st.markdown("### 📋 Escalation Log")
         
+        # Ensure escalations exist
         if st.session_state.escalations:
+            # Escalation Log DataFrame
             escalation_df = pd.DataFrame(st.session_state.escalations)
             
             # Filtering options
@@ -513,7 +566,26 @@ with tab2:
                 escalation_df['status'].isin(filter_status)
             ]
             
-            st.dataframe(filtered_df, use_container_width=True)
+            # Display filtered escalations
+            st.dataframe(
+                filtered_df,
+                use_container_width=True,
+                column_config={
+                    "query": st.column_config.TextColumn("Query"),
+                    "reason": st.column_config.TextColumn("Reason"),
+                    "priority": st.column_config.SelectboxColumn(
+                        "Priority",
+                        options=["Low", "Medium", "High", "Urgent"],
+                        required=True
+                    ),
+                    "status": st.column_config.SelectboxColumn(
+                        "Status",
+                        options=["Pending", "In Progress", "Resolved"],
+                        required=True
+                    ),
+                    "timestamp": st.column_config.DatetimeColumn("Timestamp")
+                }
+            )
         else:
             st.info("No escalations in the log")
     
@@ -521,11 +593,7 @@ with tab2:
     with esc_tabs[2]:
         st.markdown("### 📡 AI Confidence Analytics")
         
-        # Ensure ai_confidence_log is initialized
-        if 'ai_confidence_log' not in st.session_state:
-            st.session_state.ai_confidence_log = []
-        
-        # Confidence Score Distribution
+        # Ensure AI confidence log exists
         if st.session_state.ai_confidence_log:
             import matplotlib.pyplot as plt
             
@@ -587,11 +655,6 @@ with tab2:
                     "timestamp": st.column_config.DatetimeColumn("Timestamp")
                 }
             )
-            
-            # Export Option
-            if st.button("📤 Export Confidence Log"):
-                confidence_df.to_csv("ai_confidence_log.csv", index=False)
-                st.success("Confidence log exported successfully!")
         else:
             st.info("No AI confidence data available yet. Start using the AI assistant to generate insights.")
 
