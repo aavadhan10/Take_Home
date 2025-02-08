@@ -417,7 +417,7 @@ with tab1:
     # Center the button
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
-        search_button = st.button("🔍 Search", type="primary")
+        search_button = st.button("\U0001F50D Search", type="primary")  # Using Unicode for magnifying glass emoji
     
     # Example Queries
     st.markdown("##### Quick Access Questions")
@@ -433,22 +433,25 @@ with tab1:
     example_cols = st.columns(3)
     for i, query in enumerate(example_queries):
         with example_cols[i % 3]:
-            if st.button(f"💡 {query}", key=f"example_{i}"):
+            if st.button(f"\U0001F4A1 {query}", key=f"example_{i}"):  # Using Unicode for light bulb emoji
                 psm_query = query
                 
     # Process and display response
     if psm_query:
         response, relevant_docs = ask_claude_with_rag(psm_query)
         
-        st.markdown("""
+        st.markdown(
+            """
             <div class='response-container'>
-                <h4>🤖 AI Assistant Response</h4>
+                <h4><span>\U0001F916</span> AI Assistant Response</h4>
                 <p>{}</p>
             </div>
-        """.format(response), unsafe_allow_html=True)
+            """.format(response), 
+            unsafe_allow_html=True
+        )
         
         # Related Documentation
-        with st.expander("📚 Relevant Internal Documentation"):
+        with st.expander("\U0001F4DA Relevant Internal Documentation"):
             st.dataframe(
                 relevant_docs[["question", "answer"]],
                 use_container_width=True,
@@ -457,19 +460,10 @@ with tab1:
                     "answer": "Answer"
                 }
             )
-        
-        # Update metrics
-        st.session_state.queries_handled += 1
-        
-        # Add to chat history
-        st.session_state.chat_history.append({
-            "query": psm_query,
-            "response": response
-        })
 
 # Tab 2: Escalation Analysis Section
 with tab2:
-    st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
+    st.markdown("### \U0001F6A8 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
     
     # Escalation Analysis Section
     with st.expander("Analyze Potential Escalation", expanded=True):
@@ -479,7 +473,7 @@ with tab2:
             height=150
         )
         
-        if st.button("🔍 Analyze Escalation Potential", type="primary"):
+        if st.button("\U0001F50D Analyze Escalation Potential", type="primary"):
             if escalation_query:
                 analysis = analyze_potential_escalation(escalation_query)
                 
@@ -497,7 +491,7 @@ with tab2:
                             <p style='margin: 5px 0 0;'>Risk Score: {analysis["risk_score"]}/100</p>
                         </div>
                         <div style='font-size: 2em;'>
-                            {"🚨" if analysis["risk_level"] == "High" else "⚠️" if analysis["risk_level"] == "Medium" else "✅"}
+                            {"\U0001F6A8" if analysis["risk_level"] == "High" else "\U000026A0" if analysis["risk_level"] == "Medium" else "\U00002705"}
                         </div>
                     </div>
                 </div>
@@ -536,7 +530,7 @@ with tab2:
                 st.warning("Please enter details for escalation analysis")
     
     # Performance Metrics
-    st.markdown("### 📊 Response Performance & Tracker ")
+    st.markdown("### \U0001F4CA Response Performance & Tracker")
     
     # Metrics columns
     col1, col2, col3 = st.columns(3)
@@ -591,7 +585,7 @@ with tab2:
             </div>
             <p><strong>Type:</strong> {interaction['type']}</p>
             <p><strong>Query:</strong> {interaction['query']}</p>
-            <p>Accuracy: {interaction['accuracy']}</p>
+            <p><strong>Accuracy:</strong> {interaction['accuracy']}</p>
         </div>
         """
         st.markdown(interaction_html, unsafe_allow_html=True)
