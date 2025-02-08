@@ -649,6 +649,98 @@ with tab3:
                 "status": "Status"
             }
         )
+# Enhanced Sidebar
+st.sidebar.markdown(""" 
+    <div style='text-align: center; margin-bottom: 20px;'> 
+        <h1 style='color: #0f172a;'>🤖 Contact Provider Externally</h1> 
+    </div> 
+""", unsafe_allow_html=True)
+
+# Performance Metrics in Sidebar
+metrics_cols = st.sidebar.columns(2)
+with metrics_cols[0]:
+    st.sidebar.markdown(""" 
+        <div class='metric-card'> 
+            <p style='color: #64748b; margin: 0;'>Questions Answered</p> 
+            <h2 style='color: #0284c7; margin: 0;'>{}</h2> 
+        </div> 
+    """.format(st.session_state.queries_handled), unsafe_allow_html=True)
+
+with metrics_cols[1]:
+    st.sidebar.markdown(""" 
+        <div class='metric-card'> 
+            <p style='color: #64748b; margin: 0;'>Escalated</p> 
+            <h2 style='color: #ea580c; margin: 0;'>{}</h2> 
+        </div> 
+    """.format(st.session_state.queries_escalated), unsafe_allow_html=True)
+
+# Provider Contact Section
+st.sidebar.markdown("### 📱 Contact Provider")
+
+# Sample provider data
+provider_data = {
+    "Provider 1: Jesse Lau": {"email": "provider1@moxie.com", "phone": "123-456-7890", "preferred": "email"},
+    "Provider 2: Dan Friedman": {"email": "provider2@moxie.com", "phone": "987-654-3210", "preferred": "sms"},
+    "Provider 3: Kamau Massey": {"email": "provider3@moxie.com", "phone": "555-123-4567", "preferred": "chat"}
+}
+
+selected_provider = st.sidebar.selectbox("Select Provider", list(provider_data.keys()))
+
+if selected_provider:
+    st.sidebar.markdown(""" 
+        <div class='metric-card'> 
+            <p><strong>📧 Email:</strong> {}</p> 
+            <p><strong>📱 Phone:</strong> {}</p> 
+            <p><strong>⭐ Preferred Channel:</strong> {}</p> 
+        </div> 
+    """.format(
+        provider_data[selected_provider]["email"], 
+        provider_data[selected_provider]["phone"], 
+        provider_data[selected_provider]["preferred"].upper()
+    ), unsafe_allow_html=True)
+
+st.sidebar.markdown("### 📤 Send Message")
+
+selected_channel = st.sidebar.radio(
+    "Select Communication Channel:", 
+    ["💬 Chat Support", "📧 Email", "📱 SMS", "❓ Help Center"], 
+    key="channel_select"
+)
+
+# Message composition
+message = st.sidebar.text_area("Message:", placeholder="Type your message here...", height=100)
+
+# Channel-specific inputs
+if selected_channel == "💬 Chat Support":
+    if st.sidebar.button("Start Chat Session", type="primary"):
+        st.sidebar.success(f"Opening chat session with {selected_provider}...")
+elif selected_channel == "📧 Email":
+    subject = st.sidebar.text_input("Subject:", placeholder="Enter email subject")
+    if st.sidebar.button("Send Email", type="primary"):
+        st.sidebar.success(f"Email sent to {provider_data[selected_provider]['email']}")
+elif selected_channel == "📱 SMS":
+    if st.sidebar.button("Send SMS", type="primary"):
+        st.sidebar.success(f"SMS sent to {provider_data[selected_provider]['phone']}")
+elif selected_channel == "❓ Help Center":
+    ticket_priority = st.sidebar.select_slider(
+        "Ticket Priority", 
+        options=["Low", "Medium", "High", "Urgent"]
+    )
+    if st.sidebar.button("Create Help Center Ticket", type="primary"):
+        st.sidebar.success(f"Help Center ticket created for {selected_provider}")
+
+# Send Message Button
+if message and st.sidebar.button("Send Message", type="primary"):
+    if 'message_history' not in st.session_state:
+        st.session_state.message_history = []
+    
+    st.session_state.message_history.append({
+        "provider": selected_provider, 
+        "channel": selected_channel, 
+        "message": message, 
+        "timestamp": pd.Timestamp.now()
+    })
+    st.sidebar.success(f"Message sent to {selected_provider} via {selected_channel}")
 
 # Footer
 st.markdown("---")
