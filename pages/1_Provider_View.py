@@ -92,7 +92,7 @@ with chat_container:
 
 # Chat input
 st.markdown("<div style='max-width: 800px; margin: 1rem auto;'>", unsafe_allow_html=True)
-col1, col2 = st.columns([6,1])
+col1, col2, col3 = st.columns([5,1,1])
 with col1:
     chat_input = st.text_input(
         "",
@@ -101,39 +101,38 @@ with col1:
         key="chat_input_field"
     )
 with col2:
-    if st.button("Connect with a Moxie Success Manager", type="primary", use_container_width=True):
+    if st.button("Send", type="primary", use_container_width=True):
+        if chat_input:
+            # Add user message
+            st.session_state.messages.append({
+                "role": "user",
+                "content": chat_input
+            })
+            
+            # Check if in success manager mode
+            if st.session_state.success_manager_mode:
+                response = "Thank you for your message. A Success Manager will review your inquiry and reach out to you directly within 1-2 business hours."
+                st.session_state.success_manager_mode = False
+            else:
+                # Simulate AI response
+                response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
+            
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": response
+            })
+            
+            # Clear input
+            st.session_state.chat_input = ""
+            st.experimental_rerun()
+with col3:
+    if st.button("Connect with Success Manager", type="secondary", use_container_width=True):
         # Set success manager mode
         st.session_state.success_manager_mode = True
         st.session_state.messages.append({
             "role": "assistant",
             "content": "A Moxie Provider Success Manager will be available to assist you shortly. Please describe your inquiry in detail."
         })
-        st.experimental_rerun()
-
-# Send button logic
-if st.button("Send", type="secondary", use_container_width=True):
-    if chat_input:
-        # Add user message
-        st.session_state.messages.append({
-            "role": "user",
-            "content": chat_input
-        })
-        
-        # Check if in success manager mode
-        if st.session_state.success_manager_mode:
-            response = "Thank you for your message. A Success Manager will review your inquiry and reach out to you directly within 1-2 business hours."
-            st.session_state.success_manager_mode = False
-        else:
-            # Simulate AI response
-            response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
-        
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": response
-        })
-        
-        # Clear input
-        st.session_state.chat_input = ""
         st.experimental_rerun()
 st.markdown("</div>", unsafe_allow_html=True)
 
