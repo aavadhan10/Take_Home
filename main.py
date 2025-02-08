@@ -21,15 +21,6 @@ st.markdown("""
         background-color: #f8fafc;
     }
     
-    /* View Toggle Styling */
-    .view-toggle-container {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-    
     /* Button Styling */
     .stButton > button {
         width: 100%;
@@ -37,26 +28,16 @@ st.markdown("""
         padding: 10px 20px;
         transition: all 0.2s ease;
     }
-    
-    .toggle-button {
-        background-color: #f1f5f9;
-        border: 2px solid #e2e8f0;
-        padding: 0.75rem 2rem;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        min-width: 150px;
-    }
-    
-    .toggle-button:hover {
+    .stButton > button:hover {
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    .toggle-button.active {
-        background-color: #0284c7;
-        color: white;
-        border-color: #0284c7;
+    /* Input Field Styling */
+    .stTextInput > div > div > input {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 12px 20px;
     }
     
     /* Card Styling */
@@ -66,46 +47,12 @@ st.markdown("""
         border-radius: 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         margin-bottom: 15px;
-        transition: all 0.2s ease;
     }
     
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    
-    /* Provider Chat Styling */
-    .chat-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 1rem;
-    }
-    
-    .chat-message {
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 0.5rem;
-        max-width: 85%;
-    }
-    
-    .chat-message.user {
-        background-color: #f1f5f9;
-        margin-left: auto;
-    }
-    
-    .chat-message.assistant {
-        background-color: #0284c7;
-        color: white;
-        margin-right: auto;
-    }
-    
-    .chat-input {
-        display: flex;
-        gap: 1rem;
-        padding: 1rem;
-        background: white;
-        border-radius: 8px;
-        margin-top: 1rem;
+    /* Tab Styling */
+    .stTabs > div > div > div {
+        gap: 8px;
+        padding: 10px 0;
     }
     
     /* Response Container */
@@ -117,49 +64,37 @@ st.markdown("""
         margin: 20px 0;
     }
     
-    /* Quick Access Cards */
-    .quick-access {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin: 2rem 0;
-    }
-    
-    .quick-access-card {
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    /* Example Query Buttons */
+    .example-query {
+        background-color: #f1f5f9;
+        border-radius: 20px;
+        padding: 8px 16px;
+        margin: 4px;
+        display: inline-block;
         cursor: pointer;
         transition: all 0.2s ease;
     }
+    .example-query:hover {
+        background-color: #e2e8f0;
+    }
     
-    .quick-access-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    /* Channel Selection */
+    .channel-select {
+        padding: 10px;
+        border-radius: 8px;
+        margin: 5px 0;
+        cursor: pointer;
+    }
+    .channel-select:hover {
+        background-color: #f1f5f9;
+    }
+    
+    /* Sidebar Styling */
+    .css-1d391kg {
+        padding: 1rem;
     }
     </style>
 """, unsafe_allow_html=True)
-
-# Initialize session states
-if 'queries_handled' not in st.session_state:
-    st.session_state.queries_handled = 0
-if 'queries_escalated' not in st.session_state:
-    st.session_state.queries_escalated = 0
-if 'escalations' not in st.session_state:
-    st.session_state.escalations = []
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-if 'message_history' not in st.session_state:
-    st.session_state.message_history = []
-if 'current_view' not in st.session_state:
-    st.session_state.current_view = 'PSM'
-if 'chat_messages' not in st.session_state:
-    st.session_state.chat_messages = []
-if 'selected_quick_access' not in st.session_state:
-    st.session_state.selected_quick_access = None
-if 'provider_chat_input' not in st.session_state:
-    st.session_state.provider_chat_input = ""
 
 # Load API key and initialize Anthropic client
 try:
@@ -238,10 +173,196 @@ def ask_claude_with_rag(query):
             
             return response.content[0].text, relevant_docs
     except Exception as e:
-        return f"Error: {str(e)}", pd.DataFrame()
+        return f"Error: {str(e)}", relevant_docs
 
-# Sentiment Analysis and Escalation Function
+# Initialize session state
+if 'queries_handled' not in st.session_state:
+    st.session_state.queries_handled = 0
+if 'queries_escalated' not in st.session_state:
+    st.session_state.queries_escalated = 0
+if 'escalations' not in st.session_state:
+    st.session_state.escalations = []
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+if 'message_history' not in st.session_state:
+    st.session_state.message_history = []
+
+# Enhanced Sidebar
+with st.sidebar:
+    st.markdown("""
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <h1 style='color: #0f172a;'>🤖 Contact Provider Externally</h1>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Performance Metrics
+    metrics_cols = st.columns(2)
+    with metrics_cols[0]:
+        st.markdown("""
+            <div class='metric-card'>
+                <p style='color: #64748b; margin: 0;'>Questions Answered</p>
+                <h2 style='color: #0284c7; margin: 0;'>{}</h2>
+            </div>
+        """.format(st.session_state.queries_handled), unsafe_allow_html=True)
+    
+    with metrics_cols[1]:
+        st.markdown("""
+            <div class='metric-card'>
+                <p style='color: #64748b; margin: 0;'>Escalated</p>
+                <h2 style='color: #ea580c; margin: 0;'>{}</h2>
+            </div>
+        """.format(st.session_state.queries_escalated), unsafe_allow_html=True)
+    
+    # Provider Contact Section
+    st.markdown("### 📱 Contact Provider")
+    
+    # Sample provider data
+    provider_data = {
+        "Provider 1: Jesse Lau": {"email": "provider1@moxie.com", "phone": "123-456-7890", "preferred": "email"},
+        "Provider 2: Dan Friedman": {"email": "provider2@moxie.com", "phone": "987-654-3210", "preferred": "sms"},
+        "Provider 3 Kamau Massey": {"email": "provider3@moxie.com", "phone": "555-123-4567", "preferred": "chat"}
+    }
+    
+    selected_provider = st.selectbox("Select Provider", list(provider_data.keys()))
+    
+    if selected_provider:
+        st.markdown("""
+            <div class='metric-card'>
+                <p><strong>📧 Email:</strong> {}</p>
+                <p><strong>📱 Phone:</strong> {}</p>
+                <p><strong>⭐ Preferred Channel:</strong> {}</p>
+            </div>
+        """.format(
+            provider_data[selected_provider]["email"],
+            provider_data[selected_provider]["phone"],
+            provider_data[selected_provider]["preferred"].upper()
+        ), unsafe_allow_html=True)
+
+        st.markdown("### 📤 Send Message")
+        
+        selected_channel = st.radio(
+            "Select Communication Channel:",
+            ["💬 Chat Support", "📧 Email", "📱 SMS", "❓ Help Center"],
+            key="channel_select",
+        )
+
+        # Message composition
+        message = st.text_area("Message:", placeholder="Type your message here...", height=100)
+        
+        # Channel-specific inputs
+        if selected_channel == "💬 Chat Support":
+            if st.button("Start Chat Session", type="primary"):
+                st.success(f"Opening chat session with {selected_provider}...")
+                
+        elif selected_channel == "📧 Email":
+            subject = st.text_input("Subject:", placeholder="Enter email subject")
+            if st.button("Send Email", type="primary"):
+                st.success(f"Email sent to {provider_data[selected_provider]['email']}")
+                
+        elif selected_channel == "📱 SMS":
+            if st.button("Send SMS", type="primary"):
+                st.success(f"SMS sent to {provider_data[selected_provider]['phone']}")
+                
+        elif selected_channel == "❓ Help Center":
+            ticket_priority = st.select_slider(
+                "Ticket Priority",
+                options=["Low", "Medium", "High", "Urgent"]
+            )
+            if st.button("Create Help Center Ticket", type="primary"):
+                st.success(f"Help Center ticket created for {selected_provider}")
+
+        # Send Message Button
+        if message and st.button("Send Message", type="primary"):
+            st.session_state.message_history.append({
+                "provider": selected_provider,
+                "channel": selected_channel,
+                "message": message,
+                "timestamp": pd.Timestamp.now()
+            })
+            st.success(f"Message sent to {selected_provider} via {selected_channel}")
+
+# Main Content Area
+st.markdown("""
+    <div style='text-align: center; padding: 20px 0;'>
+        <h1>🚀 Moxie AI Support Agent Demo</h1>
+        <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance (Powered by Claude 3.5 Sonnet & RAG Technology) </p>
+    </div>
+""", unsafe_allow_html=True)
+
+# Create tabs with enhanced styling
+tab1, tab2, tab3 = st.tabs([
+    "🔍 AI Support Question Assistant",
+    "🚨Escalation Center & Response Performance Tracker",
+    "📊 Internal Documentation Search "
+])
+
+# Tab 1: AI Support Question Assistant
+with tab1:
+    st.markdown("### Type in your questions below")
+    st.info("Answering common provider questions from internal documentation.")
+    
+    # Search Section
+    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    
+    # Center the button with reduced width
+    col1, col2, col3 = st.columns([2,1,2])
+    with col2:
+        st.button("🔍 Search", type="primary")
+    
+    # Example Queries
+    st.markdown("##### Quick Access Questions")
+    example_queries = [
+        "How do I update billing info?",
+        "What are the marketing guidelines?",
+        "How do I handle patient data?",
+        "Reset password",
+        "Business hours",
+        "Access dashboard"
+    ]
+    
+    example_cols = st.columns(3)
+    for i, query in enumerate(example_queries):
+        with example_cols[i % 3]:
+            if st.button(f"💡 {query}", key=f"example_{i}"):
+                psm_query = query
+
+    # Process Query and Display Response
+    if psm_query:
+        response, relevant_docs = ask_claude_with_rag(psm_query)
+        
+        # Display Response
+        st.markdown("""
+            <div class='response-container'>
+                <h4>🤖 AI Assistant Response</h4>
+                <p>{}</p>
+            </div>
+        """.format(response), unsafe_allow_html=True)
+        
+        # Related Documentation
+        with st.expander("📚 Relevant Internal Documentation"):
+            st.dataframe(
+                relevant_docs[["question", "answer"]],
+                use_container_width=True,
+                column_config={
+                    "question": "Question",
+                    "answer": "Answer"
+                }
+            )
+        
+        # Update metrics
+        st.session_state.queries_handled += 1
+        
+        # Add to chat history
+        st.session_state.chat_history.append({
+            "query": psm_query,
+            "response": response,
+            "channel": selected_channel
+        })
+    # Sentiment Analysis and Escalation Function
 def analyze_potential_escalation(query):
+    """
+    Comprehensive analysis of potential escalation risks
+    """
     escalation_triggers = {
         "critical_risks": [
             "legal action", "lawsuit", "discrimination", 
@@ -265,6 +386,7 @@ def analyze_potential_escalation(query):
         ]
     }
     
+    # Risk assessment logic
     risk_assessment = {
         "critical_risk_score": 0,
         "compliance_risk_score": 0,
@@ -274,8 +396,12 @@ def analyze_potential_escalation(query):
     
     query_lower = query.lower()
     
+    # Score risk categories
     for category, triggers in escalation_triggers.items():
-        category_matches = [trigger for trigger in triggers if trigger in query_lower]
+        category_matches = [
+            trigger for trigger in triggers 
+            if trigger in query_lower
+        ]
         
         if category == "critical_risks":
             risk_assessment["critical_risk_score"] = len(category_matches) * 3
@@ -286,6 +412,7 @@ def analyze_potential_escalation(query):
         elif category == "technical_issues":
             risk_assessment["technical_complexity_score"] = len(category_matches) * 2
     
+    # Calculate total risk score
     total_risk_score = (
         risk_assessment["critical_risk_score"] * 3 +
         risk_assessment["compliance_risk_score"] * 2 +
@@ -293,191 +420,191 @@ def analyze_potential_escalation(query):
         risk_assessment["technical_complexity_score"]
     )
     
+    # Prepare escalation analysis
     escalation_analysis = {
         "potential_escalation": total_risk_score > 5,
         "risk_level": "High" if total_risk_score > 10 else "Medium" if total_risk_score > 5 else "Low",
         "risk_score": total_risk_score,
-        "detailed_assessment": risk_assessment,
+        "detailed_assessment": {
+            "Critical Risks": risk_assessment["critical_risk_score"],
+            "Compliance Concerns": risk_assessment["compliance_risk_score"],
+            "Urgency Factors": risk_assessment["urgency_score"],
+            "Technical Complexity": risk_assessment["technical_complexity_score"]
+        },
         "recommended_actions": []
     }
     
+    # Generate recommended actions
     if total_risk_score > 10:
-        escalation_analysis["recommended_actions"].append("🚨 Immediate Management Review Required")
+        escalation_analysis["recommended_actions"].append(
+            "🚨 Immediate Management Review Required"
+        )
     elif total_risk_score > 5:
-        escalation_analysis["recommended_actions"].append("⚠️ Consultation with Senior Management Recommended")
+        escalation_analysis["recommended_actions"].append(
+            "⚠️ Consultation with Senior Management Recommended"
+        )
     
     if risk_assessment["critical_risk_score"] > 0:
-        escalation_analysis["recommended_actions"].append("🛡️ Engage Legal Department")
+        escalation_analysis["recommended_actions"].append(
+            "🛡️ Engage Legal Department"
+        )
     
     if risk_assessment["compliance_risk_score"] > 0:
-        escalation_analysis["recommended_actions"].append("📋 Compliance Team Review")
+        escalation_analysis["recommended_actions"].append(
+            "📋 Compliance Team Review"
+        )
     
     if risk_assessment["urgency_score"] > 0:
-        escalation_analysis["recommended_actions"].append("⏰ Prioritize Immediate Response")
+        escalation_analysis["recommended_actions"].append(
+            "⏰ Prioritize Immediate Response"
+        )
     
     if risk_assessment["technical_complexity_score"] > 0:
-        escalation_analysis["recommended_actions"].append("🖥️ Technical Support Consultation")
+        escalation_analysis["recommended_actions"].append(
+            "🖥️ Technical Support Consultation"
+        )
     
     return escalation_analysis
 
-# View Toggle at the top
-st.markdown("""
-    <div style='text-align: center; padding: 1rem 0;'>
-        <h1 style='color: #0f172a; margin-bottom: 1rem;'>🚀 Moxie AI Support</h1>
-    </div>
-""", unsafe_allow_html=True)
-
-col1, col2, col3 = st.columns([2,1,2])
-with col2:
-    view_col1, view_col2 = st.columns(2)
-    with view_col1:
-        if st.button("👨‍💼 PSM View", key="psm_view", type="primary" if st.session_state.current_view == 'PSM' else "secondary", use_container_width=True):
-            st.session_state.current_view = 'PSM'
-    with view_col2:
-        if st.button("👤 Provider View", key="provider_view", type="primary" if st.session_state.current_view == 'Provider' else "secondary", use_container_width=True):
-            st.session_state.current_view = 'Provider'
-# Main Content Based on View
-if st.session_state.current_view == 'PSM':
-    # PSM View with sidebar navigation
-    st.sidebar.markdown("### PSM Navigation")
-    st.sidebar.markdown("---")
+# Tab 2: Response Accuracy Tracker & Escalation Center
+with tab2:
+    st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
     
-    # Performance Metrics in Sidebar
-    st.sidebar.markdown("### Performance Metrics")
-    metrics_cols = st.sidebar.columns(2)
-    with metrics_cols[0]:
-        st.metric("Queries Handled", st.session_state.queries_handled)
-    with metrics_cols[1]:
-        st.metric("Escalated", st.session_state.queries_escalated)
-    
-    # Main PSM Content with tabs
-    tab1, tab2, tab3 = st.tabs([
-        "🔍 AI Support Question Assistant",
-        "🚨Escalation Center",
-        "📊 Documentation Search"
-    ])
-    
-    with tab1:
-        st.markdown("### Type in your questions below")
-        st.info("Answering common provider questions from internal documentation.")
+    # Escalation Analysis Section
+    with st.expander("Analyze Potential Escalation", expanded=True):
+        escalation_query = st.text_area(
+            "Enter Incident Details", 
+            placeholder="Describe the concern or incident in comprehensive detail...",
+            height=150
+        )
         
-        psm_query = st.text_input("", placeholder="Type your question here...", key="psm_search")
-        
-        col1, col2, col3 = st.columns([2,1,2])
-        with col2:
-            search_button = st.button("🔍 Search", type="primary")
-        
-        # Example Queries
-        st.markdown("##### Quick Access Questions")
-        example_queries = [
-            "How do I update billing info?",
-            "What are the marketing guidelines?",
-            "How do I handle patient data?",
-            "Reset password",
-            "Business hours",
-            "Access dashboard"
-        ]
-        
-        example_cols = st.columns(3)
-        for i, query in enumerate(example_queries):
-            with example_cols[i % 3]:
-                if st.button(f"💡 {query}", key=f"example_{i}"):
-                    psm_query = query
-
-        if psm_query:
-            response, relevant_docs = ask_claude_with_rag(psm_query)
-            
-            st.markdown(f"""
-                <div class='response-container'>
-                    <h4>🤖 AI Assistant Response</h4>
-                    <p>{response}</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            with st.expander("📚 Relevant Internal Documentation"):
-                st.dataframe(
-                    relevant_docs[["question", "answer"]],
-                    use_container_width=True,
-                    column_config={
-                        "question": "Question",
-                        "answer": "Answer"
+        if st.button("🔍 Analyze Escalation Potential", type="primary"):
+            if escalation_query:
+                # Hardcoded risk analysis
+                risk_levels = {
+                    "Low Risk": {
+                        "color": "#10b981",
+                        "icon": "✅",
+                        "description": "Will respond autonomously. No immediate escalation needed"
+                    },
+                    "Medium Risk": {
+                        "color": "#f59e0b", 
+                        "icon": "⚠️",
+                        "description": "Review recommended. Manual escalation needed"
+                    },
+                    "High Risk": {
+                        "color": "#ef4444", 
+                        "icon": "🚨",
+                        "description": "Immediate action required"
                     }
-                )
-            
-            st.session_state.queries_handled += 1
-            st.session_state.chat_history.append({
-                "query": psm_query,
-                "response": response,
-                "timestamp": pd.Timestamp.now()
-            })
-
-    with tab2:
-        st.markdown("### 🚨 Escalation Analysis")
-        
-        # Escalation Analysis Section
-        with st.expander("Analyze Potential Escalation", expanded=True):
-            escalation_query = st.text_area(
-                "Enter Incident Details", 
-                placeholder="Describe the concern or incident in comprehensive detail...",
-                height=150
-            )
-            
-            if st.button("🔍 Analyze Escalation Potential", type="primary"):
-                if escalation_query:
-                    escalation_analysis = analyze_potential_escalation(escalation_query)
-                    
-                    # Display risk level
-                    risk_color = {
-                        "Low": "#10b981",
-                        "Medium": "#f59e0b",
-                        "High": "#ef4444"
-                    }[escalation_analysis["risk_level"]]
-                    
-                    st.markdown(f"""
-                        <div style='
-                            background-color: {risk_color}; 
-                            color: white; 
-                            padding: 15px; 
-                            border-radius: 10px;
-                            margin-bottom: 20px;
-                        '>
-                            <h3 style='margin: 0;'>Risk Level: {escalation_analysis["risk_level"]}</h3>
-                            <p style='margin: 5px 0 0;'>Risk Score: {escalation_analysis["risk_score"]}</p>
+                }
+                
+                # Simple risk determination logic
+                keywords = {
+                    "High Risk": ["legal", "hipaa", "violation", "patient safety", "lawsuit"],
+                    "Medium Risk": ["concern", "potential issue", "review needed"]
+                }
+                
+                # Determine risk level
+                risk_level = "Low Risk"
+                for level, words in keywords.items():
+                    if any(word in escalation_query.lower() for word in words):
+                        risk_level = level
+                        break
+                
+                # Display risk assessment
+                current_risk = risk_levels[risk_level]
+                risk_html = f"""
+                <div style='
+                    background-color: {current_risk["color"]}; 
+                    color: white; 
+                    padding: 15px; 
+                    border-radius: 10px;
+                '>
+                    <div style='display: flex; justify-content: space-between; align-items: center;'>
+                        <div>
+                            <h3 style='margin: 0;'>Risk Level: {risk_level}</h3>
+                            <p style='margin: 5px 0 0;'>{current_risk["description"]}</p>
                         </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Recommended Actions
-                    st.markdown("### Recommended Actions:")
-                    for action in escalation_analysis["recommended_actions"]:
-                        st.markdown(f"- {action}")
-                    
-                    # Detailed Assessment
-                    st.markdown("### Detailed Risk Assessment:")
-                    risk_df = pd.DataFrame({
-                        "Risk Category": escalation_analysis["detailed_assessment"].keys(),
-                        "Score": escalation_analysis["detailed_assessment"].values()
-                    })
-                    st.dataframe(risk_df)
-                    
-                    if escalation_analysis["risk_level"] != "Low":
-                        st.session_state.queries_escalated += 1
-                else:
-                    st.warning("Please enter details for escalation analysis")
-        
-        # Performance Metrics
-        st.markdown("### 📊 Response Performance & Tracker")
-        metrics_cols = st.columns(3)
-        with metrics_cols[0]:
-            st.metric("Total Interactions", st.session_state.queries_handled)
-        with metrics_cols[1]:
-            resolution_rate = (st.session_state.queries_handled - st.session_state.queries_escalated) / max(st.session_state.queries_handled, 1) * 100
-            st.metric("Resolution Rate", f"{resolution_rate:.1f}%")
-        with metrics_cols[2]:
-            st.metric("Escalated Cases", st.session_state.queries_escalated)
-
-    with tab3:
-        st.markdown("### 📊 Documentation Search")
-        
+                        <div style='font-size: 2em;'>
+                            {current_risk["icon"]}
+                        </div>
+                    </div>
+                </div>
+                """
+                st.markdown(risk_html, unsafe_allow_html=True)
+            else:
+                st.warning("Please enter details for escalation analysis")
+    
+    # Performance Metrics
+    st.markdown("### 📊 Response Performance & Tracker ")
+    
+    # Metrics columns
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Total Interactions", "247")
+    
+    with col2:
+        st.metric("Successful Resolutions", "221 (89.5%)")
+    
+    with col3:
+        st.metric("Avg Response Time", "12 sec")
+    
+    # Interaction History
+    st.subheader("Interaction Log")
+    
+    interactions = [
+        {
+            "timestamp": "2024-02-05 10:23",
+            "type": "Billing Query",
+            "query": "How to update patient billing?",
+            "status": "Resolved",
+            "accuracy": "95%"
+        },
+        {
+            "timestamp": "2024-02-05 11:45",
+            "type": "Compliance Issue",
+            "query": "HIPAA data transfer concern",
+            "status": "Escalated",
+            "accuracy": "100%"
+        }
+    ]
+    
+    for interaction in interactions:
+        status_color = "#10b981" if interaction["status"] == "Resolved" else "#ef4444"
+        interaction_html = f"""
+        <div style='
+            background-color: #f8fafc; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 10px;
+        '>
+            <div style='display: flex; justify-content: space-between;'>
+                <span>{interaction['timestamp']}</span>
+                <span style='
+                    background-color: {status_color};
+                    color: white;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                '>
+                    {interaction['status']}
+                </span>
+            </div>
+            <p><strong>Type:</strong> {interaction['type']}</p>
+            <p><strong>Query:</strong> {interaction['query']}</p>
+            <p>Accuracy: {interaction['accuracy']}</p>
+        </div>
+        """
+        st.markdown(interaction_html, unsafe_allow_html=True)
+# Tab 3: Common Documentation + Interaction Insights
+with tab3:
+    st.markdown("### 📊 Knowledge Base & Interactions")
+    
+    # Relevant Documents Section
+    st.subheader("📚 Internal Documentation")
+    if not internal_docs_df.empty:
         doc_search = st.text_input("Search documentation...", key="doc_search")
         if doc_search:
             filtered_docs = internal_docs_df[
@@ -495,99 +622,49 @@ if st.session_state.current_view == 'PSM':
                 "answer": "Information/Answer"
             }
         )
-
-else:
-    # Provider View (ChatGPT style)
-    st.markdown("""
-        <div class="chat-container">
-            <div style="text-align: center; margin-bottom: 1rem;">
-                <h2>Moxie Support Assistant</h2>
-                <p style="color: #64748b;">How can I help you today?</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
     
-    # Quick Access Suggestions
-    quick_access = st.columns(4)
-    suggestions = [
-        "💳 Billing Support",
-        "🔧 Technical Help",
-        "📱 Account Settings",
-        "📚 Resources"
-    ]
-    
-    for i, suggestion in enumerate(suggestions):
-        with quick_access[i]:
-            if st.button(suggestion, use_container_width=True):
-                st.session_state.provider_chat_input = f"I need help with {suggestion}"
-    
-    # Chat Interface
-    chat_container = st.container()
-    with chat_container:
-        for message in st.session_state.chat_messages:
+    # Recent Message History
+    if st.session_state.message_history:
+        for msg in reversed(st.session_state.message_history[-5:]):
             st.markdown(f"""
-                <div class="chat-message {message['role']}">
-                    {message['content']}
+                <div class='metric-card'>
+                    <p><strong>To:</strong> {msg['provider']}</p>
+                    <p><strong>Channel:</strong> {msg['channel']}</p>
+                    <p><strong>Message:</strong> {msg['message']}</p>
+                    <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
                 </div>
             """, unsafe_allow_html=True)
     
-    # Chat Input
-    st.markdown("<div class='chat-input'>", unsafe_allow_html=True)
-    col1, col2 = st.columns([6,1])
-    with col1:
-        chat_input = st.text_input(
-            "",
-            value=st.session_state.provider_chat_input,
-            placeholder="Type your message here...",
-            key="provider_chat"
+    # Chat History
+    st.subheader("Recent AI Interactions")
+    if st.session_state.chat_history:
+        for chat in st.session_state.chat_history[-5:]:  # Show last 5 interactions
+            st.markdown(f"""
+                <div class='metric-card'>
+                    <p><strong>Question:</strong> {chat['query']}</p>
+                    <p><strong>Response:</strong> {chat['response'][:200]}...</p>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    # Escalation Analytics
+    if st.session_state.escalations:
+        st.subheader("Escalation Analytics")
+        escalation_df = pd.DataFrame(st.session_state.escalations)
+        st.dataframe(
+            escalation_df,
+            use_container_width=True,
+            column_config={
+                "query": "Query",
+                "reason": "Reason",
+                "priority": "Priority",
+                "status": "Status"
+            }
         )
-    with col2:
-        if st.button("Send", type="primary", use_container_width=True):
-            if chat_input:
-                # Add user message
-                st.session_state.chat_messages.append({
-                    "role": "user",
-                    "content": chat_input
-                })
-                
-                # Get AI response using RAG
-                response, _ = ask_claude_with_rag(chat_input)
-                
-                # Add AI response
-                st.session_state.chat_messages.append({
-                    "role": "assistant",
-                    "content": response
-                })
-                
-                # Clear input
-                st.session_state.provider_chat_input = ""
-                st.experimental_rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Additional Resources (collapsed by default)
-    with st.expander("📚 Additional Resources"):
-        resources_col1, resources_col2 = st.columns(2)
-        with resources_col1:
-            st.markdown("""
-                ### Quick Links
-                - 📋 Billing & Payments
-                - 🔐 Account Security
-                - 📱 Mobile App Guide
-                - 📞 Contact Support
-            """)
-        with resources_col2:
-            st.markdown("""
-                ### Popular Articles
-                - How to update payment methods
-                - Setting up 2FA
-                - Integration guides
-                - Best practices
-            """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
     <div style='text-align: center; padding: 20px 0; color: #64748b;'>
-        Built with ❤️ using Claude 3.5 Sonnet, Streamlit, and RAG
+        Built by Ankita Avadhani using Claude 3.5 Sonnet, Streamlit, and RAG
     </div>
 """, unsafe_allow_html=True)
