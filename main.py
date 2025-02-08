@@ -1,12 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from transformers import AutoTokenizer, AutoModel
 import torch
 from anthropic import Anthropic
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics.pairwise import cosine_similarity
 
 # Page Configuration
 st.set_page_config(
@@ -358,207 +355,48 @@ with tab1:
             "response": response,
             "channel": selected_channel
         })
- Sentiment and Escalation Utility Functions
-# Sentiment and Escalation Utility Functions
-def analyze_sentiment(text):
-    """
-    Simple sentiment analysis to determine escalation likelihood.
-    Returns a sentiment score between -1 (very negative) and 1 (very positive)
-    """
-    try:
-        from textblob import TextBlob
-        return TextBlob(text).sentiment.polarity
-    except ImportError:
-        # Fallback simple sentiment analysis
-        negative_words = ['problem', 'issue', 'complaint', 'urgent', 'critical', 'error']
-        positive_words = ['help', 'support', 'resolve', 'improve']
-        
-        lower_text = text.lower()
-        negative_count = sum(word in lower_text for word in negative_words)
-        positive_count = sum(word in lower_text for word in positive_words)
-        
-        return (positive_count - negative_count) / (positive_count + negative_count + 1)
-
-def determine_escalation_score(text):
-    """
-    Calculate an escalation score based on sentiment and key indicators
-    """
-    sentiment = analyze_sentiment(text)
-    
-    # Escalation scoring logic
-    if sentiment < -0.5:
-        return {
-            "score": 90,  # High likelihood of escalation
-            "recommendation": "Immediate Escalation",
-            "reason": "Strongly negative sentiment detected"
-        }
-    elif sentiment < 0:
-        return {
-            "score": 60,  # Moderate escalation risk
-            "recommendation": "Review and Potentially Escalate",
-            "reason": "Negative sentiment detected"
-        }
-    elif sentiment == 0:
-        return {
-            "score": 30,  # Low escalation risk
-            "recommendation": "Standard Response",
-            "reason": "Neutral sentiment"
-        }
-    else:
-        return {
-            "score": 10,  # Minimal escalation risk
-            "recommendation": "Standard Response",
-            "reason": "Positive or neutral sentiment"
-        }
-
-# Tab 2: Escalation and Response Management
+    # Tab 2: Escalation Center
 with tab2:
-    # Initialize default escalations for demo
-    if 'escalations' not in st.session_state:
-        st.session_state.escalations = [
-            {
-                "query": "I've been waiting for weeks and still haven't received my order. This is unacceptable!",
-                "risk_score": 90,
-                "recommendation": "Immediate Escalation",
-                "reason": "Strongly negative sentiment detected",
-                "timestamp": pd.Timestamp.now() - pd.Timedelta(days=2)
-            },
-            {
-                "query": "I'm having some difficulties with the billing process.",
-                "risk_score": 60,
-                "recommendation": "Review and Potentially Escalate",
-                "reason": "Negative sentiment detected",
-                "timestamp": pd.Timestamp.now() - pd.Timedelta(days=1)
-            },
-            {
-                "query": "Your product is great and has really helped my business!",
-                "risk_score": 10,
-                "recommendation": "Standard Response",
-                "reason": "Positive or neutral sentiment",
-                "timestamp": pd.Timestamp.now() - pd.Timedelta(hours=12)
-            }
-        ]
+    st.markdown("### 🚨 Escalation Management")
     
-    st.markdown("# 🚨 Customer Response Management")
-    
-    # Tabs for different views
-    tab1, tab2 = st.tabs(["📊 Escalation Analyzer", "💬 Response Composer"])
-    
-    # Escalation Analyzer Tab
-    with tab1:
-        st.markdown("## 🔍 Escalation Risk Assessment")
-        
-        # Input for query analysis
-        query = st.text_area("Enter Customer Message:", 
-                             placeholder="Paste the customer message here to assess escalation risk...")
-        
-        # Analyze and display escalation risk
-        if query:
-            escalation_result = determine_escalation_score(query)
-            
-            # Escalation Risk Visualization
-            st.markdown(f"""
-            ### Escalation Risk Analysis
-            
-            **Risk Score**: {escalation_result['score']}/100
-            
-            **Recommendation**: {escalation_result['recommendation']}
-            
-            **Reasoning**: {escalation_result['reason']}
-            
-            #### Sentiment Breakdown
-            Sentiment Score: {analyze_sentiment(query):.2f}
-            """)
-            
-            # Color-coded progress bar for risk
-            risk_color = (
-                "red" if escalation_result['score'] > 70 else 
-                "orange" if escalation_result['score'] > 40 else 
-                "green"
+    # Create New Escalation
+    with st.expander("Create New Escalation", expanded=True):
+        esc_col1, esc_col2 = st.columns([2,1])
+        with esc_col1:
+            escalation_query = st.text_input("Query to Escalate")
+            escalation_reason = st.selectbox(
+                "Reason",
+                ["Compliance", "Legal", "Technical", "Other"]
             )
-            st.progress(escalation_result['score']/100, text=f"Escalation Risk: {escalation_result['score']}%")
-            
-            # Create Escalation Button
-            if st.button("🚨 Create Escalation"):
-                # Log the escalation
-                escalation_entry = {
-                    "query": query,
-                    "risk_score": escalation_result['score'],
-                    "recommendation": escalation_result['recommendation'],
-                    "reason": escalation_result['reason'],
-                    "timestamp": pd.Timestamp.now()
-                }
-                
-                st.session_state.escalations.append(escalation_entry)
-                st.success("Escalation logged successfully!")
-        
-        # Display Existing Escalations
-        st.markdown("## 📋 Existing Escalations")
-        if st.session_state.escalations:
-            # Convert to DataFrame for better display
-            escalations_df = pd.DataFrame(st.session_state.escalations)
-            
-            # Display escalations
-            st.dataframe(
-                escalations_df,
-                column_config={
-                    "query": "Customer Message",
-                    "risk_score": st.column_config.NumberColumn(
-                        "Risk Score",
-                        format="%d"
-                    ),
-                    "recommendation": "Recommendation",
-                    "reason": "Reason",
-                    "timestamp": st.column_config.DatetimeColumn("Timestamp")
-                },
-                use_container_width=True
+        with esc_col2:
+            priority = st.select_slider(
+                "Priority",
+                ["Low", "Medium", "High", "Urgent"]
             )
+            if st.button("🚨 Create Escalation", type="primary"):
+                st.session_state.escalations.append({
+                    "query": escalation_query,
+                    "reason": escalation_reason,
+                    "priority": priority,
+                    "status": "Pending"
+                })
+                st.session_state.queries_escalated += 1
+                st.success("Escalation created!")
     
-    # Response Composer Tab
-    with tab2:
-        st.markdown("## 💬 Customer Response Assistant")
-        
-        # Input fields for context
-        original_query = st.text_area("Original Customer Message:", 
-                                      placeholder="Paste the original customer message...")
-        
-        # Context and tone selection
-        context = st.selectbox(
-            "Response Context",
-            ["General Inquiry", "Technical Support", "Billing", "Complaint", "Feedback"]
-        )
-        
-        tone = st.selectbox(
-            "Response Tone",
-            ["Professional", "Empathetic", "Direct", "Apologetic"]
-        )
-        
-        # Draft response button
-        if st.button("Draft Response"):
-            # Simple response generation logic
-            if original_query:
-                # Basic sentiment-aware response generation
-                sentiment = analyze_sentiment(original_query)
-                
-                # Simple response template
-                response_template = f"""
-                Dear Valued Customer,
+    # View Escalations
+    if st.session_state.escalations:
+        for idx, esc in enumerate(st.session_state.escalations):
+            with st.container():
+                st.markdown(f"""
+                    <div class='metric-card'>
+                        <h4>{esc['reason']} Escalation - {esc['priority']}</h4>
+                        <p>{esc['query']}</p>
+                        <p style='color: #ea580c;'>Status: {esc['status']}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.info("No active escalations")
 
-                Thank you for reaching out regarding your {context.lower()}.
-
-                {'We apologize for any inconvenience' if sentiment < 0 else 'We appreciate your feedback'}. 
-                Our team is committed to providing the best possible support.
-
-                {'We will be addressing your concerns promptly.' if sentiment < 0 else 'We hope this meets your expectations.'}
-
-                Best regards,
-                Customer Support Team
-                """
-                
-                st.markdown("### Suggested Response:")
-                st.write(response_template)
-            else:
-                st.warning("Please enter a customer message to draft a response.")
 # Tab 3: Common Documentation + Interaction Insights
 with tab3:
     st.markdown("### 📊 Knowledge Base & Interactions")
