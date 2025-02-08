@@ -298,13 +298,16 @@ tab1, tab2, tab3 = st.tabs([
 
 # Tab 1: AI Support Question Assistant
 with tab1:
+    st.markdown("### 1. Internally Assist PSMs: Provider Question Support")
+    st.info("Answering common provider questions from internal documentation and escalating when necessary.")
+    
     # Search Section
-    st.markdown("### How can we help you today?")
-    query_col1, query_col2 = st.columns([4,1])
-    with query_col1:
-        psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
-    with query_col2:
-        search_button = st.button("🔍 Search", use_container_width=True)
+    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
+    
+    # Center the button with reduced width
+    col1, col2, col3 = st.columns([2,1,2])
+    with col2:
+        st.button("🔍 Search", type="primary")
     
     # Example Queries
     st.markdown("##### Quick Access Questions")
