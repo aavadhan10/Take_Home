@@ -595,6 +595,7 @@ with tab2:
             <p>Accuracy: {interaction['accuracy']}</p>
         </div>
         """, unsafe_allow_html=True)
+        
 # Tab 3: Common Documentation + Interaction Insights
 with tab3:
     st.markdown("### 📊 Knowledge Base & Interactions")
