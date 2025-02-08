@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -115,6 +114,9 @@ if 'escalations' not in st.session_state:
 st.title("🚀 Moxie AI Support Agent")
 st.markdown("### Empowering Provider Success Managers with AI-powered assistance")
 
+# Create tabs
+tab1, tab2, tab3 = st.tabs(["Support Assistant", "Escalation Center", "Insights & Library"])
+
 # Sidebar for Navigation and Metrics
 with st.sidebar:
     st.header("🤖 AI Agent Dashboard")
@@ -126,16 +128,20 @@ with st.sidebar:
         st.metric("Questions Answered", st.session_state.queries_handled)
     with col2:
         st.metric("Questions Escalated", st.session_state.queries_escalated)
+
+# Tab 1: Support Assistant
+with tab1:
+    st.header("🔍 What can we help you with today?")
     
-    # Communication channel selection
-    st.subheader("📞 Communication Channel")
+    # NEW: Integrated Communication Channel Selection
+    st.subheader("📞 Select Communication Channel")
     support_channel = st.radio(
-        "Select Channel",
+        "Choose How You'd Like to Communicate",
         ["Chat Support", "Email Response", "SMS Handling", "Help Center Ticket"],
-        key="support_channel"
+        key="support_channel_main"
     )
     st.write(f"Selected Channel: **{support_channel}**")
-
+    
     # Provider information lookup
     st.subheader("🔍 Find Provider Information")
     provider_data = {
@@ -156,13 +162,9 @@ with st.sidebar:
         st.write(f"**Channel:** {support_channel}")
         st.write(f"**Message:** {provider_message}")
 
-# Create tabs
-tab1, tab2, tab3 = st.tabs(["Support Assistant", "Escalation Center", "Insights & Library"])
-
-# Tab 1: Support Assistant
-with tab1:
-    st.header("🔍 What can we help you with today?")
-    psm_query = st.text_input("Ask your question", placeholder="Type your question here...")
+    # Query Processing Section
+    st.subheader("❓ Ask Your Question")
+    psm_query = st.text_input("Type your question", placeholder="Type your question here...")
 
     # Example query buttons
     st.markdown("**Need inspiration? Try these examples:**")
@@ -208,7 +210,7 @@ with tab1:
                 st.session_state.queries_handled += 1
             
             # Display Response
-            st.markdown("### 🤖 Here’s what I found:")
+            st.markdown("### 🤖 Here's what I found:")
             st.info(response)
             
             # Escalation Button
