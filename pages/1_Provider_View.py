@@ -1,5 +1,4 @@
 import streamlit as st
-import time  # For simulating a delay
 
 # Page Configuration
 st.set_page_config(
@@ -165,12 +164,10 @@ if ask_clicked and chat_input.strip():
         "content": chat_input
     })
     
-    # Simulate searching with a delay
-    with st.spinner("Searching for your answer..."):
-        time.sleep(2)  # Simulate a 2-second delay
-    
     # Hardcoded response with a relevant document
     response = """
+    **Searching for your answer...**
+
     Here’s a relevant document based on your query:
 
     **Document Title:** Patient Record Management Guide  
@@ -266,6 +263,6 @@ with st.expander("📚 Provider Resources"):
 st.markdown("---")
 st.markdown("""
     <div style='text-align: center; padding: 20px 0; color: #64748b;'>
-        Moxie Provider Support Portal
+        Moxie Provider Support Portal- Built by Ankita Avadhani
     </div>
 """, unsafe_allow_html=True)
