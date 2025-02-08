@@ -336,19 +336,18 @@ tab1, tab2, tab3 = st.tabs([
     "🚨 Escalation Center & Response Performance Tracker",
     "📊 Internal Documentation Search"
 ])
-
 # Tab 1: AI Support Question Assistant
 with tab1:
     st.markdown("### Type in your questions below")
     st.info("Answering common provider questions from internal documentation.")
     
     # Search Section
-    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search_tab1")
+    psm_query = st.text_input("", placeholder="Type your question here...")
     
     # Center the button
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
-        search_button = st.button("🔍 Search", type="primary", key="search_button_tab1")
+        search_button = st.button("🔍 Search", type="primary")
     
     # Example Queries
     st.markdown("##### Quick Access Questions")
@@ -364,7 +363,7 @@ with tab1:
     example_cols = st.columns(3)
     for i, query in enumerate(example_queries):
         with example_cols[i % 3]:
-            if st.button(f"💡 {query}", key=f"example_query_{i}"):
+            if st.button(f"💡 {query}"):
                 psm_query = query
                 
     # Process and display response
@@ -397,8 +396,7 @@ with tab1:
         st.metric(
             label="Queries Handled",
             value=st.session_state.queries_handled,
-            delta=1,
-            key="queries_handled_metric_tab1"
+            delta=1
         )
         
         # Add to chat history
@@ -406,6 +404,7 @@ with tab1:
             "query": psm_query,
             "response": response
         })
+
 # Tab 2: Escalation Analysis Section
 with tab2:
     st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
@@ -415,11 +414,10 @@ with tab2:
         escalation_query = st.text_area(
             "Enter Incident Details", 
             placeholder="Describe the concern or incident in comprehensive detail...",
-            height=150,
-            key="escalation_text_area"
+            height=150
         )
         
-        if st.button("🔍 Analyze Escalation Potential", type="primary", key="analyze_button"):
+        if st.button("🔍 Analyze Escalation Potential", type="primary"):
             if escalation_query:
                 analysis = analyze_potential_escalation(escalation_query)
                 
@@ -451,22 +449,19 @@ with tab2:
                     st.metric(
                         label="Combined Risk Score",
                         value=analysis['risk_score'],
-                        help="Overall risk assessment score",
-                        key="combined_score_tab2"
+                        help="Overall risk assessment score"
                     )
                 with score_cols[1]:
                     st.metric(
                         label="Keyword Risk Score",
                         value=analysis['keyword_risk_score'],
-                        help="Risk score based on keyword analysis",
-                        key="keyword_score_tab2"
+                        help="Risk score based on keyword analysis"
                     )
                 with score_cols[2]:
                     st.metric(
                         label="Claude Risk Score",
                         value=analysis['claude_risk_score'],
-                        help="Risk score from Claude's analysis",
-                        key="claude_score_tab2"
+                        help="Risk score from Claude's analysis"
                     )
                 
                 # Display risk breakdown
@@ -474,7 +469,7 @@ with tab2:
                 if "risk_breakdown" in analysis["detailed_assessment"]:
                     for i, (category, score) in enumerate(analysis["detailed_assessment"]["risk_breakdown"].items()):
                         if score > 0:
-                            st.progress(score/100, text=f"{category}: {score}/100", key=f"progress_{i}_tab2")
+                            st.progress(score/100, text=f"{category}: {score}/100")
                 
                 # Display sentiment and concerns
                 st.subheader("Detailed Assessment")
@@ -500,24 +495,21 @@ with tab2:
         st.metric(
             label="Total Interactions",
             value=247,
-            delta=None,
-            key="total_interactions_tab2"
+            delta=None
         )
     with metric_cols[1]:
         st.metric(
             label="Successful Resolutions",
             value=89.5,
             delta=None,
-            help="Percentage of successfully resolved queries",
-            key="resolutions_tab2"
+            help="Percentage of successfully resolved queries"
         )
     with metric_cols[2]:
         st.metric(
             label="Average Response Time",
             value=12,
             delta=None,
-            help="Average response time in seconds",
-            key="response_time_tab2"
+            help="Average response time in seconds"
         )
     
     # Interaction History
@@ -567,8 +559,7 @@ with tab2:
                 <p><strong>Accuracy:</strong> {interaction['accuracy']}%</p>
             </div>
             """,
-            unsafe_allow_html=True,
-            key=f"interaction_{i}_tab2"
+            unsafe_allow_html=True
         )
 
 # Tab 3: Knowledge Base & Interactions
@@ -578,7 +569,7 @@ with tab3:
     # Relevant Documents Section
     st.subheader("📚 Internal Documentation")
     if not internal_docs_df.empty:
-        doc_search = st.text_input("Search documentation...", key="doc_search_tab3")
+        doc_search = st.text_input("Search documentation...")
         if doc_search:
             filtered_docs = internal_docs_df[
                 internal_docs_df["question"].str.contains(doc_search, case=False) |
@@ -609,8 +600,7 @@ with tab3:
                     <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
                 </div>
                 """,
-                unsafe_allow_html=True,
-                key=f"msg_history_{i}_tab3"
+                unsafe_allow_html=True
             )
     
     # Chat History
@@ -624,8 +614,7 @@ with tab3:
                     <p><strong>Response:</strong> {chat['response'][:200]}...</p>
                 </div>
                 """,
-                unsafe_allow_html=True,
-                key=f"chat_history_{i}_tab3"
+                unsafe_allow_html=True
             )
     
     # Escalation Analytics
@@ -635,20 +624,17 @@ with tab3:
         with metric_cols[0]:
             st.metric(
                 label="Total Escalations",
-                value=len(st.session_state.escalations),
-                key="total_escalations_tab3"
+                value=len(st.session_state.escalations)
             )
         with metric_cols[1]:
             st.metric(
                 label="Active Cases",
-                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Active"),
-                key="active_cases_tab3"
+                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Active")
             )
         with metric_cols[2]:
             st.metric(
                 label="Resolved Cases",
-                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Resolved"),
-                key="resolved_cases_tab3"
+                value=sum(1 for e in st.session_state.escalations if e.get("status") == "Resolved")
             )
         
         escalation_df = pd.DataFrame(st.session_state.escalations)
@@ -660,8 +646,7 @@ with tab3:
                 "reason": "Reason",
                 "priority": "Priority",
                 "status": "Status"
-            },
-            key="escalation_df_tab3"
+            }
         )
 
 # Footer
