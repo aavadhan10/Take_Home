@@ -101,7 +101,7 @@ with col1:
         key="chat_input_field"
     )
 with col2:
-    if st.button("Send a message to a Success Manager", type="primary", use_container_width=True):
+    if st.button("Ask a question", type="primary", use_container_width=True):
         if chat_input:
             # Add user message
             st.session_state.messages.append({
