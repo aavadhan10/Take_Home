@@ -465,6 +465,6 @@ with tab3:
 st.markdown("---")
 st.markdown("""
     <div style='text-align: center; padding: 20px 0; color: #64748b;'>
-        Built with ❤️ using Claude 3.5 Sonnet, Streamlit, and RAG
+        Built by Ankita Avadhani using Claude 3.5 Sonnet, Streamlit, and RAG
     </div>
 """, unsafe_allow_html=True)
