@@ -181,8 +181,9 @@ if ask_clicked and chat_input.strip():
         "content": response
     })
     
-    # Clear input
+    # Clear input and reset state
     st.session_state.chat_input = ""
+    st.session_state.show_connection_options = False  # Reset connection options
 
 if success_manager_clicked:
     # Set success manager mode
@@ -235,9 +236,6 @@ if st.session_state.show_connection_options:
             })
             st.session_state.show_connection_options = False  # Close the options
             st.session_state.success_manager_message = ""  # Clear the message
-    st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
 
 # Enhanced resources section with healthcare focus
 with st.expander("📚 Provider Resources"):
