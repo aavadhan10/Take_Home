@@ -423,7 +423,6 @@ with tab3:
         )
     
     # Recent Message History
-    st.subheader("Recent Messages")
     if st.session_state.message_history:
         for msg in reversed(st.session_state.message_history[-5:]):
             st.markdown(f"""
