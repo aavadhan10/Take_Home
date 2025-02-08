@@ -353,15 +353,18 @@ if 'chat_history' not in st.session_state:
 if 'message_history' not in st.session_state:
     st.session_state.message_history = []
 
-# Main page layout
-st.markdown("""
+# Create main page title and description
+st.markdown(
+    """
     <div style='text-align: center; padding: 20px 0;'>
         <h1>🚀 Moxie AI Support Agent Demo</h1>
         <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
     </div>
-""", unsafe_allow_html=True)
+    """, 
+    unsafe_allow_html=True
+)
 
-# Create tabs
+# Create tabs first - before trying to use them
 tab1, tab2, tab3 = st.tabs([
     "🔍 AI Support Question Assistant",
     "🚨 Escalation Center & Response Performance Tracker",
@@ -379,7 +382,7 @@ with tab1:
     # Center the button
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
-        search_button = st.button("🔍 Search", type="primary")
+        search_button = st.button("\U0001F50D Search", type="primary")
     
     # Example Queries
     st.markdown("##### Quick Access Questions")
@@ -395,45 +398,7 @@ with tab1:
     example_cols = st.columns(3)
     for i, query in enumerate(example_queries):
         with example_cols[i % 3]:
-            if st.button(f"💡 {query}", key=f"example_{i}"):
-                psm_query = query
-                
-    # Process and display response
-    if psm_query:
-        response, relevant_docs = ask_claude_with_rag(psm_query)
-        
-        st.markdown("""
-            <div class='response-container'>
-                <h4>🤖 AI Assistant Response</h4>
-                <p>{}</p>
-    # Tab 1: AI Support Question Assistant
-with tab1:
-    st.markdown("### Type in your questions below")
-    st.info("Answering common provider questions from internal documentation.")
-    
-    # Search Section
-    psm_query = st.text_input("", placeholder="Type your question here...", key="main_search")
-    
-    # Center the button
-    col1, col2, col3 = st.columns([2,1,2])
-    with col2:
-        search_button = st.button("\U0001F50D Search", type="primary")  # Using Unicode for magnifying glass emoji
-    
-    # Example Queries
-    st.markdown("##### Quick Access Questions")
-    example_queries = [
-        "How do I update billing info?",
-        "What are the marketing guidelines?",
-        "How do I handle patient data?",
-        "Reset password",
-        "Business hours",
-        "Access dashboard"
-    ]
-    
-    example_cols = st.columns(3)
-    for i, query in enumerate(example_queries):
-        with example_cols[i % 3]:
-            if st.button(f"\U0001F4A1 {query}", key=f"example_{i}"):  # Using Unicode for light bulb emoji
+            if st.button(f"\U0001F4A1 {query}", key=f"example_{i}"):
                 psm_query = query
                 
     # Process and display response
@@ -441,12 +406,12 @@ with tab1:
         response, relevant_docs = ask_claude_with_rag(psm_query)
         
         st.markdown(
-            """
+            f"""
             <div class='response-container'>
                 <h4><span>\U0001F916</span> AI Assistant Response</h4>
-                <p>{}</p>
+                <p>{response}</p>
             </div>
-            """.format(response), 
+            """,
             unsafe_allow_html=True
         )
         
@@ -460,7 +425,15 @@ with tab1:
                     "answer": "Answer"
                 }
             )
-
+        
+        # Update metrics
+        st.session_state.queries_handled += 1
+        
+        # Add to chat history
+        st.session_state.chat_history.append({
+            "query": psm_query,
+            "response": response
+        })
 # Tab 2: Escalation Analysis Section
 with tab2:
     st.markdown("### \U0001F6A8 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
