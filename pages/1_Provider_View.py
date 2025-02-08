@@ -45,16 +45,30 @@ st.markdown("""
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Hide Streamlit default margins and paddings */
+    .reportview-container .main .block-container {
+        padding-top: 1rem;
+        padding-right: 1rem;
+        padding-left: 1rem;
+        padding-bottom: 1rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'chat_input' not in st.session_state:
-    st.session_state.chat_input = ""
-if 'success_manager_mode' not in st.session_state:
-    st.session_state.success_manager_mode = False
+# Initialize session state with default values
+def initialize_session_state():
+    default_states = {
+        'messages': [],
+        'chat_input': '',
+        'success_manager_mode': False
+    }
+    for key, value in default_states.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+# Call initialization
+initialize_session_state()
 
 # Main chat interface with healthcare focus
 st.markdown("""
@@ -90,10 +104,12 @@ with chat_container:
             </div>
         """, unsafe_allow_html=True)
 
-# Chat input
+# Chat input and buttons
 st.markdown("<div style='max-width: 800px; margin: 1rem auto;'>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns([5,1,1])
+
 with col1:
+    # Text input for chat
     chat_input = st.text_input(
         "",
         value=st.session_state.chat_input,
@@ -102,39 +118,43 @@ with col1:
     )
 
 with col2:
-    send_button = st.button("Ask a Question", type="primary", use_container_width=True, key="send_button")
-    if send_button and chat_input:
-        # Add user message
-        st.session_state.messages.append({
-            "role": "user",
-            "content": chat_input
-        })
-        
-        # Check if in success manager mode
-        if st.session_state.success_manager_mode:
-            response = "Thank you for your message. A Success Manager will review your inquiry and reach out to you directly within 1-2 business hours."
-            st.session_state.success_manager_mode = False
-        else:
-            # Simulate AI response
-            response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
-        
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": response
-        })
-        
-        # Clear input
-        st.session_state.chat_input = ""
+    # Send button
+    if st.button("Send", type="primary", use_container_width=True, key="send_primary_button"):
+        if chat_input.strip():  # Ensure input is not just whitespace
+            # Add user message
+            st.session_state.messages.append({
+                "role": "user",
+                "content": chat_input
+            })
+            
+            # Check if in success manager mode
+            if st.session_state.success_manager_mode:
+                response = "Thank you for your message. A Success Manager will review your inquiry and reach out to you directly within 1-2 business hours."
+                st.session_state.success_manager_mode = False
+            else:
+                # Simulate AI response
+                response = f"Thank you for your question about {chat_input}. A support specialist will assist you shortly."
+            
+            # Add assistant response
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": response
+            })
+            
+            # Clear input
+            st.session_state.chat_input = ""
+            st.experimental_rerun()
 
 with col3:
-    success_manager_button = st.button("Connect with Success Manager", type="secondary", use_container_width=True, key="success_manager_button")
-    if success_manager_button:
+    # Success Manager button
+    if st.button("Success Manager", type="secondary", use_container_width=True, key="success_manager_primary_button"):
         # Set success manager mode
         st.session_state.success_manager_mode = True
         st.session_state.messages.append({
             "role": "assistant",
             "content": "A Moxie Provider Success Manager will be available to assist you shortly. Please describe your inquiry in detail."
         })
+        st.experimental_rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
 
