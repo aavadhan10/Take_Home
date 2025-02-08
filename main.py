@@ -465,7 +465,7 @@ def analyze_potential_escalation(query):
 
 # Tab 2: Response Accuracy Tracker & Escalation Center
 with tab2:
-    st.markdown("### 🚨 Escalation Risk Analysis")
+    st.markdown("### 🚨 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer")
     
     # Escalation Analysis Section
     with st.expander("Analyze Potential Escalation", expanded=True):
