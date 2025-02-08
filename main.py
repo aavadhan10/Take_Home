@@ -292,7 +292,7 @@ st.markdown("""
 # Create tabs with enhanced styling
 tab1, tab2, tab3 = st.tabs([
     "🔍 AI Support Question Assistant",
-    "🚨Escalation Center & Response Interaction Insights",
+    "🚨Escalation Center & Response Performance Tracker",
     "📊 Internal Documentation Search "
 ])
 
