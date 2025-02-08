@@ -1,3 +1,5 @@
+
+Copy
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -146,10 +148,19 @@ with st.sidebar:
         st.write(f"**Email:** {provider_data[provider_name]['Email']}")
         st.write(f"**Phone:** {provider_data[provider_name]['Phone']}")
 
-# Create tabs
-tab1, tab2, tab3 = st.tabs(["Support Assistant + Contact Provider", "Escalation Center", "Insights & Library"])
+    # Contact Provider Feature
+    st.subheader("📩 Contact Provider")
+    provider_message = st.text_area("Message to Provider", placeholder="Type your message to the provider...")
+    if st.button(f"Send via {support_channel}"):
+        st.success(f"Message sent to {provider_name} via {support_channel}!")
+        st.write(f"**Provider:** {provider_name}")
+        st.write(f"**Channel:** {support_channel}")
+        st.write(f"**Message:** {provider_message}")
 
-# Tab 1: Support Assistant + Contact Provider
+# Create tabs
+tab1, tab2, tab3 = st.tabs(["Support Assistant", "Escalation Center", "Insights & Library"])
+
+# Tab 1: Support Assistant
 with tab1:
     st.header("🔍 What can we help you with today?")
     psm_query = st.text_input("Ask your question", placeholder="Type your question here...")
@@ -211,17 +222,8 @@ with tab1:
                     })
                     st.success("Escalation created! Navigate to the Escalation Center to manage it.")
 
-    # Contact Provider Feature
-    st.header("📞 Contact Provider")
-    provider_message = st.text_area("Message to Provider", placeholder="Type your message to the provider...")
-    if st.button(f"Send via {support_channel}"):
-        st.success(f"Message sent to {provider_name} via {support_channel}!")
-        st.write(f"**Provider:** {provider_name}")
-        st.write(f"**Channel:** {support_channel}")
-        st.write(f"**Message:** {provider_message}")
-
-    # Reference Materials
-    st.header("📚 Reference Materials")
+    # Common Provider Questions Answered by Internal Documentation
+    st.header("📚 Common Provider Questions Answered by Internal Documentation")
     st.write("Access internal documentation and resources here.")
     if not internal_docs_df.empty:
         st.dataframe(internal_docs_df)
