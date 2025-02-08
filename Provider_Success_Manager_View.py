@@ -9,13 +9,14 @@ import json
 # Page Configuration
 st.set_page_config(
     page_title="Moxie AI Support Agent Demo",
-    page_icon="🚀",
+    page_icon="\U0001F680",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # Custom CSS for styling
-st.markdown("""
+st.markdown(
+    """
     <style>
     /* General Styling */
     .stApp {
@@ -95,7 +96,9 @@ st.markdown("""
         padding: 1rem;
     }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # Load API key and initialize Anthropic client
 try:
@@ -151,7 +154,7 @@ def ask_claude_with_rag(query):
         return "Error: AI assistant is unavailable.", pd.DataFrame()
     
     try:
-        with st.spinner("🔍 Searching through documentation..."):
+        with st.spinner("\U0001F50D Searching through documentation..."):
             relevant_docs = retrieve_documents(query)
             context = "\n".join(relevant_docs["question"] + ": " + relevant_docs["answer"])
             
@@ -176,7 +179,7 @@ def ask_claude_with_rag(query):
     except Exception as e:
         return f"Error: {str(e)}", relevant_docs
 
-# NEW SENTIMENT ANALYSIS AND RISK ASSESSMENT FUNCTIONS
+# Risk Analysis Functions
 def get_risk_score(query_lower):
     """
     Calculate risk score based on keyword triggers
@@ -270,7 +273,6 @@ def analyze_sentiment_with_claude(query, client):
             messages=[{"role": "user", "content": prompt}]
         )
         
-        # Parse Claude's response into a JSON object
         try:
             claude_analysis = json.loads(response.content[0].text)
             
@@ -285,7 +287,6 @@ def analyze_sentiment_with_claude(query, client):
                 "claude_risk_score": claude_analysis["risk_score"]
             }
         except json.JSONDecodeError:
-            # Fallback if response isn't valid JSON
             analysis = {
                 "sentiment": "neutral",
                 "risk_level": "Medium",
@@ -320,10 +321,8 @@ def analyze_potential_escalation(query):
     """
     Enhanced escalation analysis using Claude
     """
-    # Get Claude's analysis
     sentiment_analysis = analyze_sentiment_with_claude(query, client)
     
-    # Prepare response format matching existing code
     escalation_analysis = {
         "potential_escalation": sentiment_analysis["risk_score"] > 50,
         "risk_level": sentiment_analysis.get("risk_level", "Medium"),
@@ -353,22 +352,22 @@ if 'chat_history' not in st.session_state:
 if 'message_history' not in st.session_state:
     st.session_state.message_history = []
 
-# Create main page title and description
+# Main page layout
 st.markdown(
     """
     <div style='text-align: center; padding: 20px 0;'>
-        <h1>🚀 Moxie AI Support Agent Demo</h1>
+        <h1>\U0001F680 Moxie AI Support Agent Demo</h1>
         <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
     </div>
-    """, 
+    """,
     unsafe_allow_html=True
 )
 
-# Create tabs first - before trying to use them
+# Create tabs
 tab1, tab2, tab3 = st.tabs([
-    "🔍 AI Support Question Assistant",
-    "🚨 Escalation Center & Response Performance Tracker",
-    "📊 Internal Documentation Search"
+    "\U0001F50D AI Support Question Assistant",
+    "\U0001F6A8 Escalation Center & Response Performance Tracker",
+    "\U0001F4CA Internal Documentation Search"
 ])
 
 # Tab 1: AI Support Question Assistant
@@ -434,6 +433,7 @@ with tab1:
             "query": psm_query,
             "response": response
         })
+
 # Tab 2: Escalation Analysis Section
 with tab2:
     st.markdown("### \U0001F6A8 Escalation Risk Analysis (Powered by an AI Sentiment Analyzer)")
@@ -537,38 +537,40 @@ with tab2:
     
     for interaction in interactions:
         status_color = "#10b981" if interaction["status"] == "Resolved" else "#ef4444"
-        interaction_html = f"""
-        <div style='
-            background-color: #f8fafc; 
-            border: 1px solid #e2e8f0; 
-            border-radius: 8px; 
-            padding: 15px; 
-            margin-bottom: 10px;
-        '>
-            <div style='display: flex; justify-content: space-between;'>
-                <span>{interaction['timestamp']}</span>
-                <span style='
-                    background-color: {status_color};
-                    color: white;
-                    padding: 3px 8px;
-                    border-radius: 4px;
-                '>
-                    {interaction['status']}
-                </span>
+        st.markdown(
+            f"""
+            <div style='
+                background-color: #f8fafc; 
+                border: 1px solid #e2e8f0; 
+                border-radius: 8px; 
+                padding: 15px; 
+                margin-bottom: 10px;
+            '>
+                <div style='display: flex; justify-content: space-between;'>
+                    <span>{interaction['timestamp']}</span>
+                    <span style='
+                        background-color: {status_color};
+                        color: white;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                    '>
+                        {interaction['status']}
+                    </span>
+                </div>
+                <p><strong>Type:</strong> {interaction['type']}</p>
+                <p><strong>Query:</strong> {interaction['query']}</p>
+                <p><strong>Accuracy:</strong> {interaction['accuracy']}</p>
             </div>
-            <p><strong>Type:</strong> {interaction['type']}</p>
-            <p><strong>Query:</strong> {interaction['query']}</p>
-            <p><strong>Accuracy:</strong> {interaction['accuracy']}</p>
-        </div>
-        """
-        st.markdown(interaction_html, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
 
 # Tab 3: Knowledge Base & Interactions
 with tab3:
-    st.markdown("### 📊 Knowledge Base & Interactions")
+    st.markdown("### \U0001F4CA Knowledge Base & Interactions")
     
     # Relevant Documents Section
-    st.subheader("📚 Internal Documentation")
+    st.subheader("\U0001F4DA Internal Documentation")
     if not internal_docs_df.empty:
         doc_search = st.text_input("Search documentation...", key="doc_search")
         if doc_search:
@@ -592,25 +594,31 @@ with tab3:
     if st.session_state.message_history:
         st.subheader("Recent Messages")
         for msg in reversed(st.session_state.message_history[-5:]):
-            st.markdown(f"""
+            st.markdown(
+                f"""
                 <div class='metric-card'>
                     <p><strong>To:</strong> {msg['provider']}</p>
                     <p><strong>Channel:</strong> {msg['channel']}</p>
                     <p><strong>Message:</strong> {msg['message']}</p>
                     <p><small>Sent: {msg['timestamp'].strftime('%Y-%m-%d %H:%M')}</small></p>
                 </div>
-            """, unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True
+            )
     
     # Chat History
     st.subheader("Recent AI Interactions")
     if st.session_state.chat_history:
         for chat in st.session_state.chat_history[-5:]:  # Show last 5 interactions
-            st.markdown(f"""
+            st.markdown(
+                f"""
                 <div class='metric-card'>
                     <p><strong>Question:</strong> {chat['query']}</p>
                     <p><strong>Response:</strong> {chat['response'][:200]}...</p>
                 </div>
-            """, unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True
+            )
     
     # Escalation Analytics
     if st.session_state.escalations:
@@ -629,8 +637,11 @@ with tab3:
 
 # Footer
 st.markdown("---")
-st.markdown("""
+st.markdown(
+    """
     <div style='text-align: center; padding: 20px 0; color: #64748b;'>
         Built by Ankita Avadhani using Claude 3.5 Sonnet, Streamlit, and RAG
     </div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
