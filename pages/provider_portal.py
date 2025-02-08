@@ -2,7 +2,7 @@ import streamlit as st
 
 # Page Configuration
 st.set_page_config(
-    page_title="Moxie Provider Portal",
+    page_title="Provider Portal View",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="collapsed"
