@@ -1,4 +1,5 @@
-import streamlit as st
+Copyimport streamlit as st
+import time
 
 # Page setup
 st.set_page_config(page_title="Moxie Provider Portal", page_icon="👤", layout="wide")
@@ -45,6 +46,29 @@ st.markdown("""
         border-radius: 0.75rem;
         padding: 1rem;
     }
+
+    .popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
+    .popup-content {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1000;
+        text-align: center;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -55,6 +79,8 @@ if 'selected_channel' not in st.session_state:
     st.session_state.selected_channel = None
 if 'message_sent' not in st.session_state:
     st.session_state.message_sent = False
+if 'show_popup' not in st.session_state:
+    st.session_state.show_popup = False
 
 # Common provider Q&A
 PROVIDER_QA = {
@@ -180,15 +206,23 @@ elif st.session_state.current_view == "Connect with provider":
         
         # Send button
         if provider_message and st.button("Send Message", use_container_width=True):
-            st.success(f"""
-                Message sent! ✨
-                
-                A Success Manager will contact you shortly via {st.session_state.selected_channel}.
-                
-                Your message:
-                "{provider_message}"
-            """)
+            # Show popup
+            popup_html = """
+                <div class="popup-overlay"></div>
+                <div class="popup-content">
+                    <h2 style="margin-bottom: 1rem; color: #1e293b;">Message Sent! ✨</h2>
+                    <p style="color: #4b5563;">A Success Manager will contact you shortly.</p>
+                </div>
+            """
+            st.markdown(popup_html, unsafe_allow_html=True)
+            
+            # Add delay before redirect
+            time.sleep(2)
+            
+            # Reset states
             st.session_state.message_sent = True
+            st.session_state.current_view = None
+            st.session_state.selected_channel = None
             st.rerun()
 
 # Footer
