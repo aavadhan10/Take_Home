@@ -1,4 +1,4 @@
-Copyimport streamlit as st
+import streamlit as st
 import time
 
 # Page setup
