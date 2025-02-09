@@ -16,6 +16,13 @@ st.markdown("""
         background-color: #f8fafc;
     }
     
+    /* Center title */
+    h1 {
+        text-align: center !important;
+        margin-bottom: 2rem !important;
+        padding: 1rem 0 !important;
+    }
+    
     .main-container {
         max-width: 1200px;
         margin: 0 auto;
