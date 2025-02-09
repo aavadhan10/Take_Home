@@ -38,12 +38,21 @@ st.markdown("""
         border-radius: 0.75rem;
         height: 3.5rem;
     }
+    
+    .stTextArea > div > div > textarea {
+        background-color: #f8fafc;
+        border: none;
+        border-radius: 0.75rem;
+        padding: 1rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # Initialize session state
 if 'show_connect_options' not in st.session_state:
     st.session_state.show_connect_options = False
+if 'current_view' not in st.session_state:
+    st.session_state.current_view = None
 
 # Common provider Q&A
 PROVIDER_QA = {
@@ -104,7 +113,11 @@ buttons = {
 for i, (label, key) in enumerate(buttons.items()):
     with cols[i]:
         if st.button(label, use_container_width=True):
-            st.info(PROVIDER_QA[key])
+            st.session_state.current_view = key
+            st.rerun()
+
+if st.session_state.current_view in PROVIDER_QA:
+    st.info(PROVIDER_QA[st.session_state.current_view])
 
 st.markdown("---")
 
@@ -121,25 +134,48 @@ with search_cols[2]:
 
 # Handle search/connect
 if go_button:
-    if action_type == "Search for answer":
-        st.info("""
-            Here are some relevant resources:
-            
-            📑 Provider Guidelines 2024
-            📚 Clinical Documentation
-            🔍 Technical Support
-            
-            Need more help? You can always connect with a Success Manager.
-        """)
-    else:
-        st.markdown("### Connect with a Success Manager")
+    st.session_state.current_view = action_type
+    st.rerun()
+
+# Show appropriate content based on current view
+if st.session_state.current_view == "Search for answer":
+    st.info("""
+        Here are some relevant resources:
+        
+        📑 Provider Guidelines 2024
+        📚 Clinical Documentation
+        🔍 Technical Support
+        
+        Need more help? You can always connect with a Success Manager.
+    """)
+elif st.session_state.current_view == "Connect with provider":
+    st.markdown("### Connect with a Success Manager")
+    
+    # Add message input first
+    provider_message = st.text_area(
+        "Type your message for the Success Manager:", 
+        placeholder="Describe what you need help with...",
+        height=100
+    )
+    
+    if provider_message:  # Only show connection options if there's a message
+        st.markdown("### Choose how to connect:")
         connect_cols = st.columns(4)
         options = ["💬 Chat", "📧 Email", "📱 SMS", "❓ Help"]
         
         for i, option in enumerate(options):
             with connect_cols[i]:
                 if st.button(option, key=f"connect_{i}", use_container_width=True):
-                    st.success(f"Connecting via {option}... A manager will be with you shortly.")
+                    st.success(f"""
+                        Connecting via {option}... A manager will be with you shortly.
+                        
+                        Your message:
+                        "{provider_message}"
+                    """)
+                    st.session_state.current_view = None
+                    st.rerun()
+    else:
+        st.info("Please type your message above before choosing a connection method.")
 
 # Footer
 st.markdown("---")
