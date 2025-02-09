@@ -45,12 +45,24 @@ st.markdown("""
     
     /* Style text input to match */
     .stTextInput > div > div > input {
-        background-color: #f3f4f6 !important;
+        background-color: rgba(243, 244, 246, 0.7) !important;
         border: none !important;
         border-radius: 0.75rem !important;
         height: 75px !important;
         padding: 0 1.5rem !important;
         font-size: 1rem !important;
+        color: #6B7280 !important;
+    }
+    
+    .stTextInput > div > div > input::placeholder {
+        color: #9CA3AF !important;
+        opacity: 0.8 !important;
+    }
+    
+    /* Match the dimensions exactly */
+    .stTextInput {
+        width: 100% !important;
+        min-width: 500px !important;
     }
     
     /* Make the button height match */
@@ -97,8 +109,8 @@ with col4:
 # Divider
 st.markdown("---")
 
-# Search bar row with exact spacing
-search_cols = st.columns([6, 2, 1])
+# Search bar row with exact spacing and dimensions
+search_cols = st.columns([8, 2, 1])
 with search_cols[0]:
     search_input = st.text_input("", placeholder="Type your question here...")
 with search_cols[1]:
