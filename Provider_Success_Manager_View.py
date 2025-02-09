@@ -8,7 +8,7 @@ import json
 
 # Page Configuration
 st.set_page_config(
-    page_title="Moxie AI Support Agent Demo",
+    page_title="MESA (Moxie Expert Support Assistant) Demo",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
