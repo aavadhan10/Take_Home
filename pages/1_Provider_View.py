@@ -121,18 +121,21 @@ if st.session_state.active_view:
 
 # Search and connect section
 st.markdown("---")
-col1, col2 = st.columns([4,1])
+search_cols = st.columns([3,1,1])
 
-with col1:
+with search_cols[0]:
     search_input = st.text_input("", placeholder="Type your question here...")
 
-with col2:
+with search_cols[1]:
     search_type = st.selectbox("", 
                               ["Search for answer", "Connect with provider"],
                               label_visibility="collapsed")
 
+with search_cols[2]:
+    search_button = st.button("Go", use_container_width=True)
+
 # Handle search/connect
-if search_input and st.button("Go", use_container_width=True):
+if search_input and search_button:
     st.session_state.search_type = search_type
     st.session_state.active_view = None  # Clear previous view
     st.rerun()
