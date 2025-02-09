@@ -1,173 +1,182 @@
 import streamlit as st
 
-# Page Configuration
-st.set_page_config(
-    page_title="Provider Portal",
-    page_icon="👤",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# Page setup
+st.set_page_config(page_title="Provider Portal", page_icon="👤", layout="wide")
 
-# Enhanced CSS
+# Initialize states
+if 'active_view' not in st.session_state:
+    st.session_state.active_view = None
+if 'search_type' not in st.session_state:
+    st.session_state.search_type = None
+
+# CSS for cleaner UI
 st.markdown("""
     <style>
     .stApp {
         background-color: #f8fafc;
     }
     
-    .chat-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-    
-    .chat-message {
-        padding: 1rem;
-        margin: 0.5rem 0;
+    .info-box {
+        background-color: white;
+        padding: 1.5rem;
         border-radius: 0.5rem;
-        max-width: 85%;
-        animation: fade-in 0.3s ease-in-out;
-    }
-    
-    .chat-message.user {
-        background-color: #f1f5f9;
-        margin-left: auto;
-    }
-    
-    .chat-message.assistant {
-        background-color: #0284c7;
-        color: white;
-        margin-right: auto;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 1rem 0;
     }
     
     .connection-options {
-        background-color: white;
-        border-radius: 1rem;
-        padding: 2rem;
+        display: flex;
+        gap: 1rem;
         margin-top: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'chat_input' not in st.session_state:
-    st.session_state.chat_input = ''
-if 'show_connection_options' not in st.session_state:
-    st.session_state.show_connection_options = False
-
 # Header
-st.markdown("""
-    <div class='chat-container'>
-        <div style='text-align: center; margin-bottom: 2rem;'>
-            <h1>Moxie Provider Portal</h1>
-            <p style='color: #64748b;'>Your comprehensive healthcare management solution</p>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
+st.title("Moxie Provider Portal")
 
-# Quick Actions with default questions
-quick_actions = {
-    "📋 Patient Records": "How do I access my patient's medical history?",
-    "💉 Treatment Plans": "What are the current treatment protocols?",
-    "📱 Mobile App": "How do I use the Moxie mobile app?",
-    "📊 Analytics": "Can you show me my practice analytics?"
-}
+# Quick action buttons
+quick_actions = st.columns(4)
+actions = [
+    "📋 Patient Records",
+    "💉 Treatment Plans",
+    "📱 Moxie App",
+    "📊 Analytics"
+]
 
-# Display quick actions
-cols = st.columns(4)
-for i, (action, question) in enumerate(quick_actions.items()):
-    with cols[i]:
-        if st.button(action, key=f"action_{i}", use_container_width=True):
-            st.session_state.chat_input = question
+for i, action in enumerate(actions):
+    with quick_actions[i]:
+        if st.button(action, use_container_width=True):
+            st.session_state.active_view = action
+            st.session_state.search_type = None  # Reset search type
             st.rerun()
 
-# Chat messages display
-for message in st.session_state.messages:
-    st.markdown(f"""
-        <div class='chat-message {message["role"]}'>
-            {message["content"]}
-        </div>
-    """, unsafe_allow_html=True)
-
-# Chat input and button
-col1, col2 = st.columns([4, 1])
-with col1:
-    user_input = st.text_input(
-        "",
-        value=st.session_state.chat_input,
-        placeholder="Type your question here...",
-        key="chat_input_field"
-    )
-
-with col2:
-    if st.button("Searching for your answer...", type="primary", use_container_width=True):
-        if user_input.strip():
-            # Add user message
-            st.session_state.messages.append({
-                "role": "user",
-                "content": user_input
-            })
+# Show info based on active view
+if st.session_state.active_view:
+    st.markdown("---")
+    
+    # Different content for each tab
+    info_content = {
+        "📋 Patient Records": {
+            "title": "Patient Records Dashboard",
+            "content": """
+            ### Recent Patient Activity
+            - Latest appointments: 12 today
+            - Pending reviews: 5 records
+            - Recent updates: 3 new files
             
-            # Hardcoded response
-            response = """
-            **Here's what I found for you:**
-
-            **Document Title:** Healthcare Provider Guide
-            **Section:** Patient Management
-            **Content:** This guide outlines the steps for managing patient records, scheduling appointments, and accessing treatment protocols.
-            
-            Would you like me to connect you with a Success Manager for more detailed assistance?
+            ### Quick Actions
+            - Schedule follow-up
+            - Update patient info
+            - Access medical history
             """
+        },
+        "💉 Treatment Plans": {
+            "title": "Treatment Protocols",
+            "content": """
+            ### Active Protocols
+            - Chronic Care Management
+            - Preventive Care Plans
+            - Specialist Referrals
             
-            # Add assistant response
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": response
-            })
+            ### Resources
+            - Clinical guidelines
+            - Treatment templates
+            - Care coordination tools
+            """
+        },
+        "📱 Moxie App": {
+            "title": "Mobile App Status",
+            "content": """
+            ### System Status
+            - App version: 3.2.1
+            - Last sync: 5 min ago
+            - Connected devices: 2
             
-            # Clear input
-            st.session_state.chat_input = ""
-            st.rerun()
-
-# Success Manager Connection
-if st.button("Connect with Success Manager", use_container_width=True):
-    st.session_state.show_connection_options = True
-    st.rerun()
-
-# Show connection options
-if st.session_state.show_connection_options:
-    st.markdown("<div class='connection-options'>", unsafe_allow_html=True)
-    st.markdown("### How would you like to connect?")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    connection_options = {
-        "💬 Chat": col1,
-        "📧 Email": col2,
-        "📱 SMS": col3,
-        "❓ Help": col4
+            ### Features
+            - Patient messaging
+            - Schedule management
+            - Document access
+            """
+        },
+        "📊 Analytics": {
+            "title": "Practice Analytics",
+            "content": """
+            ### Today's Overview
+            - Patient visits: 28
+            - New registrations: 3
+            - Satisfaction rate: 95%
+            
+            ### Trends
+            - Weekly growth: +5%
+            - Peak hours: 9-11 AM
+            - Popular services
+            """
+        }
     }
     
-    for option, col in connection_options.items():
-        with col:
-            if st.button(option, key=f"connect_{option}", use_container_width=True):
-                response = f"You've chosen to connect via {option}. A Success Manager will be with you shortly."
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": response
-                })
-                st.session_state.show_connection_options = False
-                st.rerun()
+    info = info_content[st.session_state.active_view]
+    st.markdown(f"## {info['title']}")
+    st.markdown(info['content'])
 
-    st.markdown("</div>", unsafe_allow_html=True)
+# Search and connect section
+st.markdown("---")
+col1, col2 = st.columns([4,1])
+
+with col1:
+    search_input = st.text_input("", placeholder="Type your question here...")
+
+with col2:
+    search_type = st.selectbox("", 
+                              ["Search for answer", "Connect with provider"],
+                              label_visibility="collapsed")
+
+# Handle search/connect
+if search_input and st.button("Go", use_container_width=True):
+    st.session_state.search_type = search_type
+    st.session_state.active_view = None  # Clear previous view
+    st.rerun()
+
+# Show response based on search type
+if st.session_state.search_type:
+    st.markdown("---")
+    
+    if st.session_state.search_type == "Search for answer":
+        st.markdown("""
+        ### Found Relevant Document
+        
+        **Title**: Provider Guidelines 2024
+        **Section**: Common Procedures
+        **Summary**: This document outlines standard protocols for...
+        
+        Would you like to:
+        - View full document
+        - Get related resources
+        - Connect with specialist
+        """)
+    
+    else:  # Connect with provider
+        st.markdown("### Connect with a Success Manager")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        connection_options = {
+            "💬 Chat": col1,
+            "📧 Email": col2,
+            "📱 SMS": col3,
+            "❓ Help": col4
+        }
+        
+        for option, col in connection_options.items():
+            with col:
+                if st.button(option, use_container_width=True):
+                    st.success(f"Connecting via {option}... A manager will be with you shortly.")
+                    st.session_state.search_type = None
+                    st.rerun()
 
 # Footer
 st.markdown("---")
 st.markdown("""
-    <div style='text-align: center; padding: 20px 0; color: #64748b;'>
-        © 2024 Moxie Healthcare Solutions
+    <div style='text-align: center; color: #64748b;'>
+        Moxie Healthcare Solutions
     </div>
 """, unsafe_allow_html=True)
