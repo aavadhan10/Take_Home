@@ -169,7 +169,7 @@ for i, (action, response) in enumerate(quick_actions.items()):
         if st.button(action, key=f"action_{i}", use_container_width=True):
             st.session_state.messages.append({"role": "user", "content": f"I need help with {action}"})
             st.session_state.messages.append({"role": "assistant", "content": response})
-            st.experimental_rerun()
+            st.rerun()
 
 # Chat interface
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
