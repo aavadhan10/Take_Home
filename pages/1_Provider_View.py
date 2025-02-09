@@ -49,10 +49,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize session state
-if 'show_connect_options' not in st.session_state:
-    st.session_state.show_connect_options = False
 if 'current_view' not in st.session_state:
     st.session_state.current_view = None
+if 'selected_channel' not in st.session_state:
+    st.session_state.selected_channel = None
+if 'message_sent' not in st.session_state:
+    st.session_state.message_sent = False
 
 # Common provider Q&A
 PROVIDER_QA = {
@@ -114,6 +116,8 @@ for i, (label, key) in enumerate(buttons.items()):
     with cols[i]:
         if st.button(label, use_container_width=True):
             st.session_state.current_view = key
+            st.session_state.selected_channel = None
+            st.session_state.message_sent = False
             st.rerun()
 
 if st.session_state.current_view in PROVIDER_QA:
@@ -135,6 +139,8 @@ with search_cols[2]:
 # Handle search/connect
 if go_button:
     st.session_state.current_view = action_type
+    st.session_state.selected_channel = None
+    st.session_state.message_sent = False
     st.rerun()
 
 # Show appropriate content based on current view
@@ -151,14 +157,8 @@ if st.session_state.current_view == "Search for answer":
 elif st.session_state.current_view == "Connect with provider":
     st.markdown("### Connect with a Success Manager")
     
-    # Add message input first
-    provider_message = st.text_area(
-        "Type your message for the Success Manager:", 
-        placeholder="Describe what you need help with...",
-        height=100
-    )
-    
-    if provider_message:  # Only show connection options if there's a message
+    # Show connection options first
+    if not st.session_state.selected_channel:
         st.markdown("### Choose how to connect:")
         connect_cols = st.columns(4)
         options = ["💬 Chat", "📧 Email", "📱 SMS", "❓ Help"]
@@ -166,16 +166,30 @@ elif st.session_state.current_view == "Connect with provider":
         for i, option in enumerate(options):
             with connect_cols[i]:
                 if st.button(option, key=f"connect_{i}", use_container_width=True):
-                    st.success(f"""
-                        Connecting via {option}... A manager will be with you shortly.
-                        
-                        Your message:
-                        "{provider_message}"
-                    """)
-                    st.session_state.current_view = None
+                    st.session_state.selected_channel = option
                     st.rerun()
-    else:
-        st.info("Please type your message above before choosing a connection method.")
+    
+    # After channel is selected, show message input
+    if st.session_state.selected_channel and not st.session_state.message_sent:
+        st.markdown(f"### Send message via {st.session_state.selected_channel}")
+        provider_message = st.text_area(
+            "Type your message:", 
+            placeholder="Describe what you need help with...",
+            height=100
+        )
+        
+        # Send button
+        if provider_message and st.button("Send Message", use_container_width=True):
+            st.success(f"""
+                Message sent! ✨
+                
+                A Success Manager will contact you shortly via {st.session_state.selected_channel}.
+                
+                Your message:
+                "{provider_message}"
+            """)
+            st.session_state.message_sent = True
+            st.rerun()
 
 # Footer
 st.markdown("---")
