@@ -35,20 +35,30 @@ st.markdown("""
     .stSelectbox > div > div {
         background-color: #f3f4f6 !important;
         border: none !important;
-        border-radius: 0.5rem !important;
-        height: 60px !important;
+        border-radius: 0.75rem !important;
+        height: 75px !important;
         display: flex !important;
         align-items: center !important;
-        min-height: 60px !important;
+        min-height: 75px !important;
+        font-size: 1rem !important;
     }
     
     /* Style text input to match */
     .stTextInput > div > div > input {
         background-color: #f3f4f6 !important;
         border: none !important;
-        border-radius: 0.5rem !important;
-        height: 60px !important;
-        padding: 0 1rem !important;
+        border-radius: 0.75rem !important;
+        height: 75px !important;
+        padding: 0 1.5rem !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Make the button height match */
+    .stButton > button {
+        height: 75px !important;
+        border-radius: 0.75rem !important;
+        font-size: 1rem !important;
+        padding: 1.5rem !important;
     }
     
     /* Consistent container padding */
