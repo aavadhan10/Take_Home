@@ -323,7 +323,7 @@ if 'message_history' not in st.session_state:
 st.markdown(
     """
     <div style='text-align: center; padding: 20px 0;'>
-        <h1>🚀 Moxie AI Support Agent Demo</h1>
+        <h1>🚀 MESA (Moxie Expert Support Assistant) Demo</h1>
         <p style='color: #64748b;'>Empowering Provider Success Managers with AI assistance</p>
     </div>
     """,
