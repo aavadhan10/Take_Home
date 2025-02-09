@@ -2,13 +2,13 @@ import streamlit as st
 
 # Page Configuration
 st.set_page_config(
-    page_title="Provider View",
+    page_title="Provider Portal",
     page_icon="👤",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS (improved alignment and styling)
+# Enhanced CSS with better responsiveness and popup handling
 st.markdown("""
     <style>
     /* General styling */
@@ -16,118 +16,165 @@ st.markdown("""
         background-color: #f8fafc;
     }
     
-    .chat-container {
-        max-width: 800px;
+    .main-container {
+        max-width: 1200px;
         margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    /* Enhanced chat styling */
+    .chat-container {
+        background-color: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
         padding: 2rem;
     }
     
     .chat-message {
         padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 0.5rem;
-        max-width: 85%;
-        animation: fade-in 0.3s ease-in-out;
+        margin: 1rem 0;
+        border-radius: 0.75rem;
+        max-width: 80%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
     }
     
     .chat-message.user {
         background-color: #f1f5f9;
         margin-left: auto;
+        border-bottom-right-radius: 0.25rem;
     }
     
     .chat-message.assistant {
         background-color: #0284c7;
         color: white;
         margin-right: auto;
+        border-bottom-left-radius: 0.25rem;
     }
     
-    @keyframes fade-in {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* Quick action buttons */
+    .quick-action {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin: 0.5rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
     }
-
-    /* Hide Streamlit default margins and paddings */
-    .reportview-container .main .block-container {
-        padding-top: 1rem;
-        padding-right: 1rem;
-        padding-left: 1rem;
-        padding-bottom: 1rem;
-    }
-
-    /* Improved alignment for buttons and inputs */
-    .stButton button {
-        width: 100%;
-    }
-
-    .stTextInput input {
-        width: 100%;
+    
+    .quick-action:hover {
+        background-color: #f8fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
     /* Connection options styling */
     .connection-options {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-
-    .connection-options button {
-        width: 100%;
-        text-align: left;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #ddd;
         background-color: white;
-        color: #333;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-top: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
-    .connection-options button:hover {
-        background-color: #f1f5f9;
+    .connection-button {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin: 0.5rem;
+        width: 100%;
+        transition: all 0.2s ease;
+    }
+
+    .connection-button:hover {
+        background-color: #f8fafc;
+        transform: translateY(-2px);
+    }
+
+    /* Resources section */
+    .resources {
+        background-color: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-top: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .main-container {
+            padding: 1rem;
+        }
+        
+        .chat-message {
+            max-width: 90%;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state with default values
-def initialize_session_state():
-    default_states = {
-        'messages': [],
-        'chat_input': '',
-        'success_manager_mode': False,
-        'show_connection_options': False,
-        'success_manager_message': ''  # New state for success manager message
-    }
-    for key, value in default_states.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+# Initialize session state
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+if 'current_view' not in st.session_state:
+    st.session_state.current_view = 'main'
+if 'success_manager_message' not in st.session_state:
+    st.session_state.success_manager_message = ''
 
-# Call initialization
-initialize_session_state()
-
-# Main chat interface with healthcare focus
+# Header
 st.markdown("""
-    <div class='chat-container'>
+    <div class='main-container'>
         <div style='text-align: center; margin-bottom: 2rem;'>
-            <h1>Welcome to Moxie Support</h1>
-            <p style='color: #64748b;'>Get instant help with patient care, documentation, and practice management</p>
+            <h1>Moxie Provider Portal</h1>
+            <p style='color: #64748b;'>Your comprehensive healthcare management solution</p>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# Enhanced quick action buttons with healthcare focus
-quick_actions = st.columns(4)
-actions = [
-    "📋 Patient Record Help",
-    "💉 Treatment Protocols",
-    "📱 Moxie App Support",
-    "📊 Practice Analytics"
-]
+# Quick Actions with sample responses
+quick_actions = {
+    "📋 Patient Records": """
+        Here are your recent patient records:
+        - Sarah Johnson (Last visit: Today)
+        - Michael Chen (Last visit: Yesterday)
+        - Emma Davis (Last visit: 2 days ago)
+    """,
+    "💉 Treatment Plans": """
+        Active treatment protocols:
+        - Diabetes Management Protocol v2.1
+        - Hypertension Care Guidelines 2024
+        - Preventive Care Checklist
+    """,
+    "📱 Mobile App": """
+        Moxie Mobile App Status:
+        ✅ Connected
+        🔄 Last Sync: 5 minutes ago
+        📱 Version: 3.2.1
+    """,
+    "📊 Analytics": """
+        Practice Analytics Summary:
+        - 95% Patient Satisfaction
+        - 28 Appointments Today
+        - 3 New Patient Registrations
+    """
+}
 
-for i, action in enumerate(actions):
-    with quick_actions[i]:
-        if st.button(action, use_container_width=True):
-            st.session_state.chat_input = f"I need help with {action}"
+# Display quick actions in a grid
+cols = st.columns(4)
+for i, (action, response) in enumerate(quick_actions.items()):
+    with cols[i]:
+        if st.button(action, key=f"action_{i}", use_container_width=True):
+            st.session_state.messages.append({"role": "user", "content": f"I need help with {action}"})
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.experimental_rerun()
 
-# Chat messages display
+# Chat interface
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+
+# Display chat messages
 for message in st.session_state.messages:
     st.markdown(f"""
         <div class='chat-message {message["role"]}'>
@@ -135,132 +182,80 @@ for message in st.session_state.messages:
         </div>
     """, unsafe_allow_html=True)
 
-# Chat input and buttons
-st.markdown("<div style='max-width: 800px; margin: 1rem auto;'>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([5,1,1])
+# Chat input
+chat_col1, chat_col2 = st.columns([4, 1])
+with chat_col1:
+    user_input = st.text_input("", placeholder="Type your question here...", key="chat_input")
+with chat_col2:
+    send_message = st.button("Send", use_container_width=True)
 
-with col1:
-    # Text input for chat
-    chat_input = st.text_input(
-        "",
-        value=st.session_state.chat_input,
-        placeholder="Type your question here...",
-        key="chat_input_field"
-    )
+if send_message and user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    # Sample response based on user input
+    response = f"Thank you for your question about '{user_input}'. A provider support specialist will respond shortly."
+    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.experimental_rerun()
 
-with col2:
-    # Ask button
-    ask_clicked = st.button("Ask", type="primary", use_container_width=True, key="ask_primary_button")
+st.markdown("</div>", unsafe_allow_html=True)
 
-with col3:
-    # Success Manager button
-    success_manager_clicked = st.button("Connect with a Success Manager", type="secondary", use_container_width=True, key="success_manager_primary_button")
+# Success Manager Connection
+if st.button("🤝 Connect with Success Manager", use_container_width=True):
+    st.session_state.current_view = 'success_manager'
+    st.experimental_rerun()
 
-# Handle button clicks
-if ask_clicked and chat_input.strip():
-    # Add user message
-    st.session_state.messages.append({
-        "role": "user",
-        "content": chat_input
-    })
+if st.session_state.current_view == 'success_manager':
+    st.markdown("<div class='connection-options'>", unsafe_allow_html=True)
+    st.markdown("### Connect with a Success Manager")
     
-    # Hardcoded response with a relevant document
-    response = """
-    **Searching for your answer...**
-
-    Here’s a relevant document based on your query:
-
-    **Document Title:** Patient Record Management Guide  
-    **Summary:** This guide provides step-by-step instructions on how to manage patient records efficiently, including best practices for data entry, storage, and retrieval.  
-    **Link:** [View Document](#)
-    """
+    message = st.text_area("Your message:", placeholder="Describe how we can help you...")
     
-    # Add assistant response
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": response
-    })
-    
-    # Clear input and reset state
-    st.session_state.chat_input = ""
-    st.session_state.show_connection_options = False  # Reset connection options
-
-if success_manager_clicked:
-    # Set success manager mode
-    st.session_state.show_connection_options = True
-
-# Show connection options if "Connect with Success Manager" is clicked
-if st.session_state.show_connection_options:
-    st.markdown("---")
-    st.markdown("### How would you like to connect with a Success Manager?")
-    
-    # Text input for leaving a message
-    st.session_state.success_manager_message = st.text_area(
-        "Leave a message for the Success Manager (optional):",
-        value=st.session_state.success_manager_message,
-        placeholder="Describe your inquiry here..."
-    )
-    
-    # Options for connecting
-    st.markdown('<div class="connection-options">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        if st.button("💬 Chat Support", key="chat_support"):
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": f"You have chosen to connect via Chat Support. A Success Manager will be with you shortly.\n\nYour message: {st.session_state.success_manager_message}"
-            })
-            st.session_state.show_connection_options = False  # Close the options
-            st.session_state.success_manager_message = ""  # Clear the message
-    with col2:
-        if st.button("📧 Email", key="email"):
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": f"You have chosen to connect via Email. A Success Manager will contact you shortly.\n\nYour message: {st.session_state.success_manager_message}"
-            })
-            st.session_state.show_connection_options = False  # Close the options
-            st.session_state.success_manager_message = ""  # Clear the message
-    with col3:
-        if st.button("📱 SMS", key="sms"):
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": f"You have chosen to connect via SMS. A Success Manager will contact you shortly.\n\nYour message: {st.session_state.success_manager_message}"
-            })
-            st.session_state.show_connection_options = False  # Close the options
-            st.session_state.success_manager_message = ""  # Clear the message
-    with col4:
-        if st.button("❓ Help Center", key="help_center"):
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": f"You have chosen to visit the Help Center. Here's the link: [Help Center](#)\n\nYour message: {st.session_state.success_manager_message}"
-            })
-            st.session_state.show_connection_options = False  # Close the options
-            st.session_state.success_manager_message = ""  # Clear the message
+    connection_options = {
+        "💬 Chat": col1,
+        "📧 Email": col2,
+        "📱 SMS": col3,
+        "❓ Help": col4
+    }
+    
+    for option, col in connection_options.items():
+        with col:
+            if st.button(option, key=f"connect_{option}", use_container_width=True):
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": f"You've chosen to connect via {option}. A Success Manager will contact you shortly.\n\nYour message: {message}"
+                })
+                st.session_state.current_view = 'main'
+                st.experimental_rerun()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# Enhanced resources section with healthcare focus
-with st.expander("📚 Provider Resources"):
+# Resources Section
+with st.expander("📚 Provider Resources", expanded=False):
+    st.markdown("<div class='resources'>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
+    
     with col1:
         st.markdown("""
             ### Quick Links
-            - 📋 Clinical Documentation Guide
-            - 💊 Treatment Guidelines
-            - 📱 Moxie Mobile App Guide
-            - 🏥 Practice Management Tips
+            - [Clinical Documentation Guide](#)
+            - [Treatment Guidelines](#)
+            - [Mobile App Guide](#)
+            - [Practice Management Tips](#)
         """)
+    
     with col2:
         st.markdown("""
-            ### Popular Articles
-            - HIPAA Compliance Best Practices
-            - Patient Record Management
-            - Scheduling System Guide
-            - Treatment Planning Tools
+            ### Recent Updates
+            - 🆕 Updated HIPAA Guidelines
+            - 📱 New Mobile Features
+            - 📊 Enhanced Analytics
+            - 🏥 Practice Optimization Tools
         """)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Footer
-st.markdown("---")
 st.markdown("""
     <div style='text-align: center; padding: 20px 0; color: #64748b;'>
-        Moxie Provider Support Portal- Built by Ankita Avadhani
+        © 2024 Moxie Healthcare Solutions | Built with ❤️ for Healthcare Providers
     </div>
 """, unsafe_allow_html=True)
